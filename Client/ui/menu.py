@@ -1,7 +1,7 @@
 import pygame
 
 import connection.net as net
-from connection import local_server
+from connection import lan_code, local_server
 from core.state import state
 import ui.assets_paths as paths
 
@@ -49,6 +49,48 @@ class Botao:
         if self.text_surface is not None:
             text_rect = self.text_surface.get_rect(center=self.rect.center)
             tela.blit(self.text_surface, text_rect)
+
+
+class CampoTexto(Botao):
+    def __init__(self, imagem, pos, placeholder, caracteres_permitidos, limite, ao_confirmar=None, ao_cancelar=None):
+        super().__init__(imagem, pos, lambda: None, texto=placeholder, fonte=pygame.font.SysFont(None, 28), cor_texto=(0, 0, 0))
+        self.placeholder = placeholder
+        self.caracteres_permitidos = caracteres_permitidos
+        self.limite = limite
+        self.ao_confirmar = ao_confirmar
+        self.ao_cancelar = ao_cancelar
+        self.valor = ""
+        self.ativo = False
+
+    def handle_event(self, evento):
+        if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
+            self.ativo = self.rect.collidepoint(evento.pos)
+            self.atualizar_texto()
+            return
+        if evento.type != pygame.KEYDOWN or not self.ativo:
+            return
+        if evento.key == pygame.K_RETURN and self.ao_confirmar is not None:
+            self.ao_confirmar(self.valor)
+        elif evento.key == pygame.K_ESCAPE and self.ao_cancelar is not None:
+            self.ao_cancelar()
+        elif evento.key == pygame.K_BACKSPACE:
+            self.valor = self.valor[:-1]
+            self.atualizar_texto()
+        elif evento.unicode.upper() in self.caracteres_permitidos and len(self.valor) < self.limite:
+            self.valor += evento.unicode.upper()
+            self.atualizar_texto()
+
+    def atualizar_texto(self):
+        self.texto = f"{self.valor}|" if self.ativo else self.valor or self.placeholder
+        self.text_surface = self.fonte.render(self.texto, False, self.cor_texto)
+
+    def limpar(self):
+        self.valor = ""
+        self.atualizar_texto()
+
+    def ativar(self):
+        self.ativo = True
+        self.atualizar_texto()
 
 
 class MenuBase:
@@ -155,17 +197,80 @@ class MenuRecursos(MenuBase):
             tela.blit(food, (20, 60))
 
 
+class MenuHostear(MenuBase):
+    def __init__(self):
+        super().__init__(paths.MENU_MAIN_BG, (0, 0))
+        self.menu_opened = True
+        fonte_botoes = pygame.font.SysFont(None, 28)
+        self.campo_tamanho = CampoTexto(paths.BOTAO_START, (566, 400), "TAMANHO DO MUNDO", "0123456789", 3)
+        self.campo_tamanho.ativar()
+        self.botoes.append(self.campo_tamanho)
+        self.botoes.append(Botao(paths.BOTAO_START, (566, 520), self.iniciar_partida, mouse_buttons=(1,), keys=(), texto="INICIAR", fonte=fonte_botoes, cor_texto=(0, 0, 0)))
+
+    def iniciar_partida(self):
+        if not self.campo_tamanho.valor:
+            return False
+        tamanho_mundo = int(self.campo_tamanho.valor)
+        if not 1 <= tamanho_mundo <= 200:
+            print("O tamanho do mundo deve estar entre 1 e 200.")
+            return False
+        try:
+            ip_host = lan_code.obter_ip_preferido()
+            codigo = lan_code.ip_para_codigo(ip_host)
+        except (RuntimeError, ValueError) as exc:
+            print(f"Nao foi possivel criar o codigo: {exc}")
+            return False
+        print(f"Tamanho do mundo enviado: {tamanho_mundo}x{tamanho_mundo}")
+        print(f"Codigo da partida: {codigo}")
+        return local_server.iniciar(tamanho_mundo)
+
+
 class MenuMain(MenuBase):
     def __init__(self):
         super().__init__(paths.MENU_MAIN_BG, (0, 0))
         self.menu_opened = True
 
-        self.botoes.append(Botao(paths.BOTAO_START, (566, 400), self.start_game, mouse_buttons=(1,), keys=()))
-        self.botoes.append(Botao(paths.BOTAO_EXIT, (566, 550), self.exit_game, mouse_buttons=(1,), keys=()))
+        fonte_botoes = pygame.font.SysFont(None, 28)
+        self.botoes.append(Botao(paths.BOTAO_START, (566, 350), self.abrir_menu_hostear, mouse_buttons=(1,), keys=(), texto="HOSTEAR", fonte=fonte_botoes, cor_texto=(0, 0, 0)))
+        self.botoes.append(Botao(paths.BOTAO_START, (566, 455), self.abrir_conectar, mouse_buttons=(1,), keys=(), texto="CONECTAR", fonte=fonte_botoes, cor_texto=(0, 0, 0)))
+        self.botoes.append(Botao(paths.BOTAO_EXIT, (566, 570), self.exit_game, mouse_buttons=(1,), keys=()))
         self.botoes.append(Botao(paths.BOTAO_TOGGLE_FULLSCREEN, (0, state.altura_tela - 32), self.alternar_tela_cheia, mouse_buttons=(1,), keys=(pygame.K_f,)))
+        self.botoes_principais = self.botoes
+        self.campo_codigo = CampoTexto(paths.BOTAO_START, (566, 455), "CODIGO", lan_code.ALFABETO, 7, self.conectar_partida, self.voltar_menu)
 
-    def start_game(self):
-        return self.pedir_servidor_criar_partida()
+    def abrir_menu_hostear(self):
+        state.menu_main = MenuHostear()
+
+    def abrir_conectar(self):
+        self.campo_codigo.limpar()
+        self.campo_codigo.ativar()
+        self.botoes = [self.campo_codigo]
+
+    def voltar_menu(self):
+        self.botoes = self.botoes_principais
+
+    def conectar_partida(self, codigo):
+        try:
+            ip_host = lan_code.codigo_para_ip(codigo)
+            uri = lan_code.criar_url_websocket(ip_host)
+        except ValueError:
+            self.campo_codigo.limpar()
+            return False
+
+        net.parar()
+        state.player_id = None
+        state.player_id_criado = False
+        state.matriz_pronta = False
+        state.partida_criada = False
+        state.current_player = None
+        state.servidor_conectado = False
+        state.iniciando_partida = True
+        state.erro_conexao = None
+        state.status_conexao = "Conectando ao host..."
+        state.ws_url = uri
+        print(f"Conectando em {ip_host}...")
+        net.iniciar(uri)
+        return True
 
     def exit_game(self):
         pygame.event.post(pygame.event.Event(pygame.QUIT))
@@ -173,6 +278,3 @@ class MenuMain(MenuBase):
     def alternar_tela_cheia(self):
         state.tela_cheia_ativa = not state.tela_cheia_ativa
         state.atualizar_modo_video = True
-
-    def pedir_servidor_criar_partida(self):
-        return local_server.iniciar()

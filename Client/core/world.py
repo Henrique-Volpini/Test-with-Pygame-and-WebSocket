@@ -20,6 +20,13 @@ TILES_POR_NOME = {
 }
 
 def atualizar_matriz(matriz_do_servidor):
+    altura = len(matriz_do_servidor)
+    largura = len(matriz_do_servidor[0]) if altura else 0
+    if len(state.matriz) != altura or (altura and len(state.matriz[0]) != largura):
+        state.altura_grid = altura
+        state.largura_grid = largura
+        state.matriz = [[tile.Grass() for _ in range(largura)] for _ in range(altura)]
+
     for y, linha in enumerate(matriz_do_servidor):
         for x, item in enumerate(linha):
             classe = TILES_POR_NOME[item["tile"]]
@@ -29,4 +36,3 @@ def atualizar_matriz(matriz_do_servidor):
     state.matriz_pronta = True
 
     
-

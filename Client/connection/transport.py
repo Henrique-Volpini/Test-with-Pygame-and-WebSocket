@@ -73,7 +73,7 @@ async def _loop_rede(uri, on_message, on_status):
 
     while not _stop_event.is_set():
         try:
-            async with websockets.connect(uri, open_timeout=2) as ws:
+            async with websockets.connect(uri, open_timeout=2, max_size=16 * 1024 * 1024) as ws:
                 _ws = ws
                 if on_status is not None:
                     on_status(True, None)

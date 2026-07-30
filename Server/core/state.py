@@ -1,8 +1,12 @@
+import os
+
+
 class State:
     def __init__(self):
         # Config do mundo
-        self.altura_grid = 90
-        self.largura_grid = 120
+        tamanho_mundo = os.environ.get("TILE_GAME_WORLD_SIZE")
+        self.altura_grid = int(tamanho_mundo) if tamanho_mundo else 90
+        self.largura_grid = int(tamanho_mundo) if tamanho_mundo else 120
 
         # Mundo
         self.matriz = None
