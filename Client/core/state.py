@@ -1,63 +1,65 @@
-# Aqui fica as principais do jogo, antes tinha muitos globais espalhados e estava dando muito problema
-# Isso vai facilitar eu criar saves dps tbm
+from threading import RLock
+
 
 class GameState:
-    def __init__(self):
-        # Em que menu esta
-        self.estado_jogo = "menu_main"
+    """Estado compartilhado entre a rede e a ponte da interface web."""
 
-        # Matriz do jogo
+    def __init__(self):
+        self.lock = RLock()
+
+        # Sessao atual
+        self.estado_jogo = "menu_main"
+        self.player_id = None
+        self.player_id_criado = False
+        self.current_player = None
+        self.recursos_pendentes = None
+        self.partida_criada = False
+
+        # Mundo recebido do servidor. A matriz de renderizacao contem somente
+        # nomes serializaveis; a matriz de objetos preserva o modelo do cliente.
         self.matriz = []
+        self.matriz_render = []
+        self.matriz_wire = None
         self.matriz_pronta = False
         self.altura_grid = 0
         self.largura_grid = 0
+        self.world_revision = 0
 
-        # Feito pra algumas validacoes
-        self.player_id_criado = False
-        self.partida_criada = False
-
-        # Armazenar player id, partida atual e jogador atual
-        self.player_id = None
-        self.partida_atual = None
-        self.current_player = None
-
-        # para selecao correta de tiles
-        self.selected_tile = None
-        self.pre_selected_tile = None
-        self.mouse_pos = (0, 0)
-
-        # camera
-        self.camera_x = 0.0
-        self.camera_y = 0.0
-        self.camera_speed = 10.0
-
-        self.zoom = 1.0
-        self.zoom_min = 1.0
-        self.zoom_max = 2.5
-        self.zoom_step = 0.1
-
-        self.zoom_cache = {}
-
-        # Os menus
-        self.menu_build = None
-        self.menu_recursos = None
-        self.menu_main = None
-
-        # Configurações do jogo no geral
+        # Janela
         self.tela_cheia_ativa = False
-        self.atualizar_modo_video = False
-        self.tile_size = 32
-        self.fps = 60
-        self.largura_tela = 1280
-        self.altura_tela = 960
 
-        # Configurações de rede
+        # Rede
         self.ws_url = "ws://127.0.0.1:8765/ws"
+        self.session_mode = None
         self.iniciando_partida = False
         self.servidor_conectado = False
         self.status_conexao = ""
         self.erro_conexao = None
 
+    def resetar_sessao(self, ws_url, status, mode):
+        """Prepara uma nova conexao sem alterar o estado da janela."""
+        with self.lock:
+            self.estado_jogo = "menu_main"
+            self.player_id = None
+            self.player_id_criado = False
+            self.current_player = None
+            self.recursos_pendentes = None
+            self.partida_criada = False
+
+            self.matriz = []
+            self.matriz_render = []
+            self.matriz_wire = None
+            self.matriz_pronta = False
+            self.altura_grid = 0
+            self.largura_grid = 0
+            self.world_revision += 1
+
+            self.servidor_conectado = False
+            self.iniciando_partida = True
+            self.erro_conexao = None
+            self.status_conexao = status
+            self.ws_url = ws_url
+            self.session_mode = mode
 
 
 state = GameState()

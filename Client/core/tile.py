@@ -1,23 +1,17 @@
-import pygame
-
 import core.recursos as recursos
 
-import ui.assets_paths as paths
 
 class Tile:
-    image = None
+    nome = ""
     produz = False
 
-    ##lembrar q se adicionar um recurso novo tem q sair colocando nos tiles e aqui krl
     custo_gold = 0
     custo_wood = 0
     custo_food = 0
 
-    def __init__(self):
-        self.current_player = None
-    
-    ##Isso aqui em baixo está gastando o recurso do player ativo com os recursos
-    ##Se adicionar outro recurso tem q mexer aqui tbm em
+    def __init__(self, current_player=None):
+        self.current_player = current_player
+
     @classmethod
     def criar_custo(cls):
         return recursos.Recursos(
@@ -33,139 +27,63 @@ class Tile:
             recursos_player.comprei(custo)
             return True
         return False
-    
 
-##Daqui pra baixo é os filhos do pai Tile
+
 class Grass(Tile):
+    nome = "grass"
     custo_gold = 20
 
-    def __init__(self, current_player=None):
-        super().__init__()
-        self.current_player = current_player
-
-    @classmethod
-    def load_assets(cls):
-        cls.image = pygame.image.load(paths.GRASS).convert_alpha()
 
 class LumberjackCabin(Tile):
+    nome = "madeireiro"
     custo_gold = 80
     custo_wood = 120
-    custo_food = 0
-
     produz = True
 
     def __init__(self, current_player):
-        super().__init__()
-        self.current_player = current_player
+        super().__init__(current_player)
         self.contador_small_forest = 0
 
-    @classmethod
-    def load_assets(cls):
-        cls.image = pygame.image.load(paths.LUMBERJACK_CABIN).convert_alpha()
 
 class Mountain(Tile):
+    nome = "mountain"
     custo_gold = 80
-    custo_wood = 0
-    custo_food = 0
 
-    def __init__(self, current_player):
-        super().__init__()
-        self.current_player = current_player
-
-    @classmethod
-    def load_assets(cls):
-        cls.image = pygame.image.load(paths.MOUNTAIN).convert_alpha()
 
 class Mine(Tile):
+    nome = "mine"
     custo_gold = 30
     custo_wood = 120
     custo_food = 60
-
     produz = True
 
-    def __init__(self, current_player):
-        super().__init__()
-        self.current_player = current_player
 
-    @classmethod
-    def load_assets(cls):
-        cls.image = pygame.image.load(paths.MINE).convert_alpha()
-    
 class TownCenter(Tile):
+    nome = "town_center"
     custo_gold = 200
     custo_wood = 150
     custo_food = 100
 
 
-    def __init__(self, current_player):
-        super().__init__()
-        self.current_player = current_player
-
-    @classmethod
-    def load_assets(cls):
-        cls.image = pygame.image.load(paths.TOWN_CENTER).convert_alpha()
-
 class City(Tile):
-    custo_gold = 0
+    nome = "city"
     custo_wood = 10
-    custo_food = 0
 
-    def __init__(self, current_player):
-        super().__init__()
-        self.current_player = current_player
-
-    @classmethod
-    def load_assets(cls):
-        cls.image = pygame.image.load(paths.CITY).convert_alpha()
 
 class Water(Tile):
-    custo_gold = 0
-    custo_wood = 0
-    custo_food = 0
+    nome = "water"
 
-    def __init__(self, current_player=None):
-        super().__init__()
-        self.current_player = current_player
-
-    @classmethod
-    def load_assets(cls):
-        cls.image = pygame.image.load(paths.WATER).convert_alpha()
 
 class SmallForest(Tile):
+    nome = "small_forest"
     custo_gold = 30
-    custo_wood = 0
-    custo_food = 0
 
-    def __init__(self, current_player):
-        super().__init__()
-        self.current_player = current_player
-
-    @classmethod
-    def load_assets(cls):
-        cls.image = pygame.image.load(paths.SMALL_FOREST).convert_alpha()
 
 class MediumForest(Tile):
+    nome = "medium_forest"
     custo_gold = 50
-    custo_wood = 0
-    custo_food = 0
 
-    def __init__(self, current_player):
-        super().__init__()
-        self.current_player = current_player
 
-    @classmethod
-    def load_assets(cls):
-        cls.image = pygame.image.load(paths.MEDIUM_FOREST).convert_alpha()
-    
 class BigForest(Tile):
+    nome = "big_forest"
     custo_gold = 80
-    custo_wood = 0
-    custo_food = 0
-
-    def __init__(self, current_player):
-        super().__init__()
-        self.current_player = current_player
-
-    @classmethod
-    def load_assets(cls):
-        cls.image = pygame.image.load(paths.BIG_FOREST).convert_alpha()

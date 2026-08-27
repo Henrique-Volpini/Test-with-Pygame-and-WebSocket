@@ -23,9 +23,14 @@ def parar():
 
 
 def _atualizar_status(conectado, erro):
-    state.servidor_conectado = conectado
-    if conectado:
-        state.erro_conexao = None
-        state.status_conexao = "Servidor conectado. Gerando o mundo..."
-    elif state.iniciando_partida:
-        state.status_conexao = "Aguardando o servidor local..."
+    with state.lock:
+        state.servidor_conectado = conectado
+        if conectado:
+            state.erro_conexao = None
+            state.status_conexao = "Servidor conectado. Gerando o mundo..."
+        else:
+            state.erro_conexao = erro
+            if state.iniciando_partida:
+                state.status_conexao = "Aguardando o servidor local..."
+            else:
+                state.status_conexao = "Servidor desconectado."

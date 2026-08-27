@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tile Game</title>
+    <link rel="stylesheet" href="ui/web/styles.css">
+    <script src="ui/web/app.js" defer></script>
+</head>
+<body>
+    <main id="viewport">
+        <section id="menu-screen" class="screen">
+            <img class="screen-background" src="assets/images/Background_Menu.png" alt="" draggable="false">
+
+            <div class="menu-atmosphere" aria-hidden="true"></div>
+
+            <div id="main-menu" class="menu-view">
+                <div class="menu-card menu-card--main" role="group" aria-labelledby="main-menu-title">
+                    <p class="menu-kicker">ESCOLHA SEU DESTINO</p>
+                    <h1 id="main-menu-title" class="menu-title">Menu principal</h1>
+                    <div class="menu-divider" aria-hidden="true"><span></span></div>
+
+                    <div class="menu-actions">
+                        <button id="host-button" class="menu-button host-button" type="button" aria-label="Hostear uma nova partida">
+                            <span class="button-emblem" aria-hidden="true">♜</span>
+                            <span class="button-copy">
+                                <strong>Hostear partida</strong>
+                                <small>Crie um novo reino</small>
+                            </span>
+                            <span class="button-arrow" aria-hidden="true">›</span>
+                        </button>
+
+                        <button id="connect-button" class="menu-button connect-button" type="button" aria-label="Conectar a uma partida">
+                            <span class="button-emblem" aria-hidden="true">⇄</span>
+                            <span class="button-copy">
+                                <strong>Conectar</strong>
+                                <small>Entre com um código</small>
+                            </span>
+                            <span class="button-arrow" aria-hidden="true">›</span>
+                        </button>
+
+                        <button id="exit-button" class="menu-button exit-button" type="button" aria-label="Sair do jogo">
+                            <span class="button-emblem" aria-hidden="true">×</span>
+                            <span class="button-copy">
+                                <strong>Sair do jogo</strong>
+                                <small>Voltar para a área de trabalho</small>
+                            </span>
+                            <span class="button-arrow" aria-hidden="true">›</span>
+                        </button>
+                    </div>
+
+                    <p class="menu-signature"><span aria-hidden="true">◆</span> AVENTURAS EM REDE LOCAL <span aria-hidden="true">◆</span></p>
+                </div>
+
+                <button id="fullscreen-button" class="fullscreen-button" type="button" aria-label="Alternar tela cheia">
+                    <span class="fullscreen-icon" aria-hidden="true"></span>
+                    <span class="fullscreen-label">Tela cheia</span>
+                    <kbd>F11</kbd>
+                </button>
+            </div>
+
+            <div id="host-menu" class="menu-view" hidden>
+                <div class="menu-card menu-card--dialog" role="group" aria-labelledby="host-menu-title">
+                    <p class="menu-kicker">NOVO REINO</p>
+                    <h1 id="host-menu-title" class="menu-title">Criar partida</h1>
+                    <p class="menu-description">Defina a dimensão do mapa que será gerado para esta aventura.</p>
+                    <div class="menu-divider" aria-hidden="true"><span></span></div>
+
+                    <label class="field-label" for="world-size-input">Tamanho do mundo</label>
+                    <div id="world-size-field" class="menu-field world-size-field">
+                        <span class="field-decoration" aria-hidden="true">×</span>
+                        <input id="world-size-input" type="text" inputmode="numeric" maxlength="3" autocomplete="off" spellcheck="false" readonly aria-label="Tamanho do mundo" aria-describedby="world-size-hint">
+                        <span id="world-size-display" class="field-display">TAMANHO DO MUNDO</span>
+                    </div>
+                    <p id="world-size-hint" class="field-hint">Digite um valor de <strong>1 a 200</strong> blocos por lado.</p>
+
+                    <button id="start-host-button" class="menu-button start-host-button" type="button" aria-label="Iniciar partida">
+                        <span class="button-emblem" aria-hidden="true">▶</span>
+                        <span class="button-copy">
+                            <strong>Iniciar partida</strong>
+                            <small>Criar e entrar no mundo</small>
+                        </span>
+                        <span class="button-arrow" aria-hidden="true">›</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="connect-menu" class="menu-view" hidden>
+                <div class="menu-card menu-card--dialog menu-card--connect" role="group" aria-labelledby="connect-menu-title">
+                    <p class="menu-kicker">PORTÕES ABERTOS</p>
+                    <h1 id="connect-menu-title" class="menu-title">Entrar na partida</h1>
+                    <p class="menu-description">Use o código compartilhado pelo anfitrião para encontrar o reino.</p>
+                    <div class="menu-divider" aria-hidden="true"><span></span></div>
+
+                    <label class="field-label" for="game-code-input">Código da partida</label>
+                    <div id="game-code-field" class="menu-field game-code-field">
+                        <span class="field-decoration field-decoration--code" aria-hidden="true">#</span>
+                        <input id="game-code-input" type="text" inputmode="text" maxlength="7" autocomplete="off" spellcheck="false" readonly aria-label="Código da partida" aria-describedby="game-code-hint">
+                        <span id="game-code-display" class="field-display">CÓDIGO</span>
+                    </div>
+                    <p id="game-code-hint" class="field-hint">Até <strong>7 caracteres</strong>, usando letras ou números.</p>
+
+                    <div class="keyboard-callout" aria-label="Pressione Enter para conectar ou Escape para voltar">
+                        <span><kbd>ENTER</kbd> conectar</span>
+                        <i aria-hidden="true"></i>
+                        <span><kbd>ESC</kbd> voltar</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="game-screen" class="screen" hidden>
+            <canvas id="world-canvas" width="1280" height="960"></canvas>
+
+            <div id="resource-hud">
+                <img src="assets/images/Recursos_menu.png" alt="" draggable="false">
+                <span id="gold-value" class="resource-value gold-value">Gold: 500</span>
+                <span id="wood-value" class="resource-value wood-value">Wood: 500</span>
+                <span id="food-value" class="resource-value food-value">Food: 500</span>
+            </div>
+
+            <div id="build-menu" hidden>
+                <img class="build-background" src="assets/images/Menu_Build.png" alt="" draggable="false">
+
+                <button class="build-button" type="button" tabindex="-1" data-tile="town_center" style="left: 0px" aria-label="Town center">
+                    <img src="assets/images/Town_Center.png" alt="" draggable="false">
+                </button>
+                <button class="build-button" type="button" tabindex="-1" data-tile="grass" style="left: 32px" aria-label="Grass">
+                    <img src="assets/images/Grass.png" alt="" draggable="false">
+                </button>
+                <button class="build-button" type="button" tabindex="-1" data-tile="lumberjack_cabin" style="left: 64px" aria-label="Lumberjack cabin">
+                    <img src="assets/images/LumberjackCabin.png" alt="" draggable="false">
+                </button>
+                <button class="build-button" type="button" tabindex="-1" data-tile="small_forest" style="left: 96px" aria-label="Small forest">
+                    <img src="assets/images/Small_Forest.png" alt="" draggable="false">
+                </button>
+                <button class="build-button" type="button" tabindex="-1" data-tile="mountain" style="left: 128px" aria-label="Mountain">
+                    <img src="assets/images/Mountain.png" alt="" draggable="false">
+                </button>
+                <button class="build-button" type="button" tabindex="-1" data-tile="mine" style="left: 160px" aria-label="Mine">
+                    <img src="assets/images/Mine.png" alt="" draggable="false">
+                </button>
+                <button class="build-button" type="button" tabindex="-1" data-tile="city" style="left: 192px" aria-label="City">
+                    <img src="assets/images/City.png" alt="" draggable="false">
+                </button>
+                <button class="build-button" type="button" tabindex="-1" data-tile="water" style="left: 224px" aria-label="Water">
+                    <img src="assets/images/Water.png" alt="" draggable="false">
+                </button>
+                <button class="build-button" type="button" tabindex="-1" data-tile="medium_forest" style="left: 256px" aria-label="Medium forest">
+                    <img src="assets/images/Medium_Forest.png" alt="" draggable="false">
+                </button>
+                <button class="build-button" type="button" tabindex="-1" data-tile="big_forest" style="left: 288px" aria-label="Big forest">
+                    <img src="assets/images/Big_Forest.png" alt="" draggable="false">
+                </button>
+            </div>
+        </section>
+
+        <div id="asset-registry" hidden aria-hidden="true">
+            <img id="asset-grass" src="assets/images/Grass.png" alt="">
+            <img id="asset-town-center" src="assets/images/Town_Center.png" alt="">
+            <img id="asset-lumberjack-cabin" src="assets/images/LumberjackCabin.png" alt="">
+            <img id="asset-small-forest" src="assets/images/Small_Forest.png" alt="">
+            <img id="asset-mountain" src="assets/images/Mountain.png" alt="">
+            <img id="asset-mine" src="assets/images/Mine.png" alt="">
+            <img id="asset-city" src="assets/images/City.png" alt="">
+            <img id="asset-water" src="assets/images/Water.png" alt="">
+            <img id="asset-medium-forest" src="assets/images/Medium_Forest.png" alt="">
+            <img id="asset-big-forest" src="assets/images/Big_Forest.png" alt="">
+            <img id="asset-selected" src="assets/images/Selected.png" alt="">
+        </div>
+    </main>
+</body>
+</html>

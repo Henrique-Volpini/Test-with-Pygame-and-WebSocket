@@ -4,6 +4,7 @@ from pathlib import Path
 import socket
 import subprocess
 import sys
+import threading
 
 from connection import net
 from core.state import state
@@ -15,6 +16,7 @@ SERVER_LOG = PROJECT_ROOT / "server.log"
 
 _process = None
 _log_handle = None
+_lifecycle_lock = threading.RLock()
 LOCAL_WS_URL = "ws://127.0.0.1:8765/ws"
 
 
@@ -29,8 +31,29 @@ def porta_servidor_em_uso():
 def iniciar(tamanho_mundo=None):
     global _process, _log_handle
 
-    if state.iniciando_partida:
-        return True
+    if isinstance(tamanho_mundo, bool) or (
+        tamanho_mundo is not None
+        and (not isinstance(tamanho_mundo, int) or not 1 <= tamanho_mundo <= 200)
+    ):
+        with state.lock:
+            state.erro_conexao = "O tamanho do mundo deve estar entre 1 e 200."
+        return False
+
+    with state.lock:
+        hospedagem_em_andamento = (
+            state.iniciando_partida and state.session_mode == "host"
+        )
+        interromper_conexao_remota = (
+            state.iniciando_partida and state.session_mode == "connect"
+        )
+
+    if hospedagem_em_andamento:
+        with _lifecycle_lock:
+            if _process is not None and _process.poll() is None:
+                return True
+
+    if interromper_conexao_remota:
+        net.parar()
 
     dependencias = {
         "fastapi": "fastapi",
@@ -44,41 +67,46 @@ def iniciar(tamanho_mundo=None):
         if importlib.util.find_spec(modulo) is None
     ]
     if ausentes:
-        state.erro_conexao = "Dependencias ausentes: " + ", ".join(ausentes)
-        print(state.erro_conexao)
+        with state.lock:
+            state.erro_conexao = "Dependencias ausentes: " + ", ".join(ausentes)
+            erro = state.erro_conexao
+        print(erro)
         return False
 
     if porta_servidor_em_uso():
-        state.erro_conexao = "A porta 8765 ja esta sendo usada por outro servidor. Feche o processo antigo."
-        print(state.erro_conexao)
+        with state.lock:
+            state.erro_conexao = "A porta 8765 ja esta sendo usada por outro servidor. Feche o processo antigo."
+            erro = state.erro_conexao
+        print(erro)
         return False
 
-    state.player_id = None
-    state.player_id_criado = False
-    state.matriz_pronta = False
-    state.partida_criada = False
-    state.current_player = None
-    state.servidor_conectado = False
-    state.iniciando_partida = True
-    state.erro_conexao = None
-    state.status_conexao = "Iniciando servidor local..."
-    state.ws_url = LOCAL_WS_URL
+    state.resetar_sessao(LOCAL_WS_URL, "Iniciando servidor local...", "host")
 
-    try:
-        if _process is None or _process.poll() is not None:
-            if _log_handle is not None:
-                _log_handle.close()
+    with _lifecycle_lock:
+        try:
+            if _process is None or _process.poll() is not None:
+                if _log_handle is not None:
+                    _log_handle.close()
 
-            _log_handle = SERVER_LOG.open("w", encoding="utf-8")
-            ambiente_servidor = os.environ.copy()
-            if tamanho_mundo is not None:
-                ambiente_servidor["TILE_GAME_WORLD_SIZE"] = str(tamanho_mundo)
-            _process = subprocess.Popen([sys.executable, str(SERVER_DIR / "main.py")], cwd=SERVER_DIR, stdout=_log_handle, stderr=subprocess.STDOUT, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0), env=ambiente_servidor)
-    except OSError as exc:
-        state.iniciando_partida = False
-        state.erro_conexao = f"Nao foi possivel iniciar o servidor: {exc}"
-        print(state.erro_conexao)
-        return False
+                _log_handle = SERVER_LOG.open("w", encoding="utf-8")
+                ambiente_servidor = os.environ.copy()
+                if tamanho_mundo is not None:
+                    ambiente_servidor["TILE_GAME_WORLD_SIZE"] = str(tamanho_mundo)
+                _process = subprocess.Popen(
+                    [sys.executable, str(SERVER_DIR / "main.py")],
+                    cwd=SERVER_DIR,
+                    stdout=_log_handle,
+                    stderr=subprocess.STDOUT,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                    env=ambiente_servidor,
+                )
+        except OSError as exc:
+            with state.lock:
+                state.iniciando_partida = False
+                state.erro_conexao = f"Nao foi possivel iniciar o servidor: {exc}"
+                erro = state.erro_conexao
+            print(erro)
+            return False
 
     net.iniciar(LOCAL_WS_URL)
     return True
@@ -87,15 +115,16 @@ def iniciar(tamanho_mundo=None):
 def encerrar():
     global _process, _log_handle
 
-    if _process is not None and _process.poll() is None:
-        _process.terminate()
-        try:
-            _process.wait(timeout=3)
-        except subprocess.TimeoutExpired:
-            _process.kill()
-            _process.wait(timeout=2)
+    with _lifecycle_lock:
+        if _process is not None and _process.poll() is None:
+            _process.terminate()
+            try:
+                _process.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                _process.kill()
+                _process.wait(timeout=2)
 
-    _process = None
-    if _log_handle is not None:
-        _log_handle.close()
-        _log_handle = None
+        _process = None
+        if _log_handle is not None:
+            _log_handle.close()
+            _log_handle = None

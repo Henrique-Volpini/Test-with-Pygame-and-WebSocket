@@ -1,6 +1,6 @@
 # Tile Game
 
-Jogo multiplayer em Python e Pygame. Um jogador hospeda a partida no próprio computador e os outros se conectam pela mesma rede local ou por uma rede virtual, como Hamachi ou Radmin VPN.
+Jogo multiplayer em Python com interface HTML, CSS e JavaScript exibida pelo pywebview. Um jogador hospeda a partida no próprio computador e os outros se conectam pela mesma rede local ou por uma rede virtual, como Hamachi ou Radmin VPN.
 
 ## Primeira execução no Windows
 
@@ -12,6 +12,8 @@ py -m venv .venv
 python -m pip install -r requirements.txt
 python Client\main.py
 ```
+
+No Windows, a interface usa o Microsoft Edge WebView2 Runtime. Se a janela não abrir, instale ou repare o runtime antes de tentar novamente.
 
 Nas próximas execuções:
 
@@ -43,6 +45,7 @@ O código representa o endereço IPv4 do host. Ele funciona pela rede local e pr
 ## Solução de problemas
 
 - Os detalhes da inicialização do servidor ficam em `server.log`.
+- Se a janela não abrir, confirme que o Microsoft Edge WebView2 Runtime está instalado.
 - Se aparecer que a porta `8765` já está sendo usada, feche qualquer cliente ou servidor antigo do jogo antes de tentar novamente.
 - Se o código aparecer, mas o mundo não abrir imediatamente, aguarde a geração do mapa, especialmente para tamanhos próximos de `200`.
 - Confirme que os dois computadores aparecem online na mesma rede Hamachi ou Radmin VPN.
