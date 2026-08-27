@@ -43,21 +43,23 @@ def inspect(path):
 
 
 class FrontendStructureTests(unittest.TestCase):
-    def test_shell_loads_separate_menu_and_game_assets(self):
+    def test_shell_loads_separate_menu_lobby_and_game_assets(self):
         index_path = CLIENT_DIR / "index.html"
         html = index_path.read_text(encoding="utf-8")
         shell = inspect(index_path)
 
         self.assertIn("ui/web/shared/shared.css", shell.references)
         self.assertIn("ui/web/menu/menu.css", shell.references)
+        self.assertIn("ui/web/lobby/lobby.css", shell.references)
         self.assertIn("ui/web/game/game.css", shell.references)
         self.assertIn("ui/web/app.js", shell.references)
         self.assertIn('id="viewport"', html)
         self.assertNotIn('id="menu-screen"', html)
         self.assertNotIn('id="game-screen"', html)
 
-    def test_menu_and_game_markup_have_independent_responsibilities(self):
+    def test_menu_lobby_and_game_markup_have_independent_responsibilities(self):
         menu = inspect(WEB_DIR / "menu" / "menu.html")
+        lobby = inspect(WEB_DIR / "lobby" / "lobby.html")
         game = inspect(WEB_DIR / "game" / "game.html")
 
         menu_ids = {
@@ -69,7 +71,28 @@ class FrontendStructureTests(unittest.TestCase):
             "connect-button",
             "exit-button",
             "fullscreen-button",
-            "start-host-button",
+            "join-game-button",
+            "cancel-host-button",
+            "cancel-connect-button",
+        }
+        lobby_ids = {
+            "lobby-screen",
+            "lobby-shell",
+            "lobby-code",
+            "lobby-copy-code",
+            "lobby-status",
+            "lobby-role",
+            "lobby-map-canvas",
+            "lobby-seed-input",
+            "lobby-copy-seed",
+            "lobby-size-input",
+            "lobby-apply",
+            "lobby-regenerate",
+            "lobby-player-list",
+            "lobby-player-count",
+            "lobby-leave",
+            "lobby-start",
+            "lobby-waiting",
         }
         game_ids = {
             "game-screen",
@@ -80,14 +103,41 @@ class FrontendStructureTests(unittest.TestCase):
         }
 
         self.assertTrue(menu_ids.issubset(menu.ids))
+        self.assertTrue(lobby_ids.issubset(lobby.ids))
         self.assertTrue(game_ids.issubset(game.ids))
         self.assertTrue(set(menu.ids).isdisjoint(game.ids))
+        self.assertTrue(set(menu.ids).isdisjoint(lobby.ids))
+        self.assertTrue(set(lobby.ids).isdisjoint(game.ids))
         self.assertTrue(game_ids.isdisjoint(menu.ids))
         self.assertTrue(menu_ids.isdisjoint(game.ids))
         self.assertEqual(
             [reference for reference in menu.references if reference.endswith(".png")],
             ["assets/images/Background_Menu.png"],
         )
+        self.assertEqual(
+            [reference for reference in lobby.references if reference.endswith(".png")],
+            ["assets/images/Background_Menu.png"],
+        )
+
+    def test_lobby_is_full_screen_preview_with_host_only_controls(self):
+        lobby_path = WEB_DIR / "lobby" / "lobby.html"
+        lobby = inspect(lobby_path)
+        lobby_css = (WEB_DIR / "lobby" / "lobby.css").read_text(encoding="utf-8")
+        lobby_js = (WEB_DIR / "lobby" / "lobby.js").read_text(encoding="utf-8")
+
+        self.assertEqual(lobby.tags_by_id["lobby-map-canvas"], "canvas")
+        self.assertEqual(lobby.attributes_by_id["lobby-map-canvas"]["width"], "800")
+        self.assertEqual(lobby.attributes_by_id["lobby-map-canvas"]["height"], "558")
+        self.assertIn("grid-template-columns: minmax(0, 1fr) 324px", lobby_css)
+        self.assertIn("width: 1180px", lobby_css)
+        self.assertIn("height: 850px", lobby_css)
+        self.assertIn('callBridge("configure_lobby"', lobby_js)
+        self.assertIn('callBridge("regenerate_lobby"', lobby_js)
+        self.assertIn('callBridge("start_lobby"', lobby_js)
+        self.assertIn('callBridge("leave_lobby"', lobby_js)
+        self.assertIn("seedInput.readOnly = controlsLocked", lobby_js)
+        self.assertIn("sizeInput.disabled = controlsLocked", lobby_js)
+        self.assertIn("state.lastDrawnRevision", lobby_js)
 
     def test_game_ui_uses_css_panels_and_keeps_the_rendering_contract(self):
         game_path = WEB_DIR / "game" / "game.html"
@@ -206,6 +256,7 @@ class FrontendStructureTests(unittest.TestCase):
     def test_fragment_asset_references_exist_from_client_root(self):
         for fragment in (
             WEB_DIR / "menu" / "menu.html",
+            WEB_DIR / "lobby" / "lobby.html",
             WEB_DIR / "game" / "game.html",
         ):
             with self.subTest(fragment=fragment.name):
@@ -218,14 +269,19 @@ class FrontendStructureTests(unittest.TestCase):
 
     def test_styles_and_scripts_are_partitioned(self):
         menu_css = (WEB_DIR / "menu" / "menu.css").read_text(encoding="utf-8")
+        lobby_css = (WEB_DIR / "lobby" / "lobby.css").read_text(encoding="utf-8")
         game_css = (WEB_DIR / "game" / "game.css").read_text(encoding="utf-8")
         menu_js = (WEB_DIR / "menu" / "menu.js").read_text(encoding="utf-8")
+        lobby_js = (WEB_DIR / "lobby" / "lobby.js").read_text(encoding="utf-8")
         game_js = (WEB_DIR / "game" / "game.js").read_text(encoding="utf-8")
 
         self.assertNotIn("#world-canvas", menu_css)
         self.assertNotIn("#resource-hud", menu_css)
         self.assertNotIn(".menu-card", game_css)
+        self.assertNotIn("#world-canvas", lobby_css)
+        self.assertNotIn(".menu-card", lobby_css)
         self.assertNotIn('byId("world-canvas")', menu_js)
+        self.assertNotIn('byId("world-canvas")', lobby_js)
         self.assertNotIn('byId("main-menu")', game_js)
         self.assertFalse((WEB_DIR / "styles.css").exists())
 

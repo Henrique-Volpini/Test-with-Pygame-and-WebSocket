@@ -1,16 +1,16 @@
 import core.tile as tile
 
-from core.state import state
-
 from .config import BIG_FOREST_THRESHOLD, MEDIUM_FOREST_THRESHOLD, SMALL_FOREST_THRESHOLD
 
 
-def transformar_noise_em_trees(mapa):
+def transformar_noise_em_trees(mapa, matriz_base):
     # Comeca com a matriz base (agua/grama/montanha) e aplica arvores por cima.
-    matriz_tiles = [linha[:] for linha in state.matriz]
+    matriz_tiles = [linha[:] for linha in matriz_base]
+    altura = len(mapa)
+    largura = len(mapa[0]) if altura else 0
 
-    for y in range(state.altura_grid):
-        for x in range(state.largura_grid):
+    for y in range(altura):
+        for x in range(largura):
             valor = mapa[y][x]
 
             if (valor > BIG_FOREST_THRESHOLD) and (isinstance(matriz_tiles[y][x], tile.Grass)):

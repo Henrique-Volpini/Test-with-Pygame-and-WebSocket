@@ -1,0 +1,150 @@
+<section id="lobby-screen" class="screen" hidden>
+    <img class="screen-background" src="assets/images/Background_Menu.png" alt="" draggable="false">
+    <div class="lobby-atmosphere" aria-hidden="true"></div>
+
+    <article id="lobby-shell" class="lobby-shell" aria-labelledby="lobby-title">
+        <header class="lobby-header">
+            <div class="lobby-heading">
+                <span class="lobby-kicker">SALA DE GUERRA</span>
+                <h1 id="lobby-title">Preparação da partida</h1>
+                <p>Confira o reino e reúna os jogadores antes de começar.</p>
+            </div>
+
+            <div class="lobby-header-meta">
+                <div class="lobby-code-block">
+                    <span>CÓDIGO DA SALA</span>
+                    <div class="lobby-code-row">
+                        <strong id="lobby-code">-------</strong>
+                        <button id="lobby-copy-code" class="lobby-icon-button" type="button" aria-label="Copiar código da sala" title="Copiar código">
+                            <span class="lobby-copy-icon" aria-hidden="true"></span>
+                            <span class="lobby-copy-feedback">COPIAR</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="lobby-presence" aria-live="polite">
+                    <span id="lobby-status" class="lobby-status"><i aria-hidden="true"></i> CONECTANDO</span>
+                    <strong id="lobby-role" class="lobby-role">CONVIDADO</strong>
+                </div>
+            </div>
+        </header>
+
+        <div class="lobby-content">
+            <section class="lobby-map-panel" aria-labelledby="lobby-map-title">
+                <header class="lobby-section-header">
+                    <div>
+                        <span class="lobby-section-kicker">PRÉVIA DO MUNDO</span>
+                        <h2 id="lobby-map-title">Terras do novo reino</h2>
+                    </div>
+                    <div class="lobby-map-meta" aria-label="Informações do mapa">
+                        <span id="lobby-map-size">— × — TILES</span>
+                        <span id="lobby-map-revision">MAPA —</span>
+                    </div>
+                </header>
+
+                <div id="lobby-map-frame" class="lobby-map-frame" aria-busy="true">
+                    <canvas id="lobby-map-canvas" width="800" height="558" aria-label="Prévia do mapa selecionado"></canvas>
+                    <div id="lobby-map-empty" class="lobby-map-empty">
+                        <span class="lobby-map-loader" aria-hidden="true"></span>
+                        <strong>Preparando o terreno</strong>
+                        <small>O mapa aparecerá assim que o reino estiver pronto.</small>
+                    </div>
+
+                    <div class="lobby-map-compass" aria-hidden="true"><span>N</span></div>
+                    <div class="lobby-map-scale" aria-hidden="true"><i></i><i></i><i></i></div>
+                </div>
+
+                <div class="lobby-map-legend" aria-label="Legenda do mapa">
+                    <span><i class="lobby-legend-swatch lobby-legend-swatch--water"></i>Água</span>
+                    <span><i class="lobby-legend-swatch lobby-legend-swatch--grass"></i>Planície</span>
+                    <span><i class="lobby-legend-swatch lobby-legend-swatch--forest"></i>Floresta</span>
+                    <span><i class="lobby-legend-swatch lobby-legend-swatch--mountain"></i>Montanha</span>
+                </div>
+            </section>
+
+            <aside class="lobby-sidebar" aria-label="Configuração e jogadores da sala">
+                <section id="lobby-config" class="lobby-side-card lobby-config-card" aria-labelledby="lobby-config-title">
+                    <header class="lobby-side-heading">
+                        <div>
+                            <span class="lobby-section-kicker">GERAÇÃO DO MUNDO</span>
+                            <h2 id="lobby-config-title">Configuração</h2>
+                        </div>
+                        <span id="lobby-config-authority" class="lobby-authority">SÓ O DONO</span>
+                    </header>
+
+                    <label class="lobby-field-label" for="lobby-seed-input">Seed do mapa</label>
+                    <div id="lobby-seed-field" class="lobby-field lobby-seed-field">
+                        <span class="lobby-field-mark" aria-hidden="true">#</span>
+                        <input id="lobby-seed-input" type="text" inputmode="numeric" maxlength="10" autocomplete="off" spellcheck="false" aria-describedby="lobby-seed-hint">
+                        <button id="lobby-copy-seed" class="lobby-field-action" type="button" aria-label="Copiar seed" title="Copiar seed">
+                            <span class="lobby-copy-icon" aria-hidden="true"></span>
+                            <span class="lobby-copy-feedback">COPIAR</span>
+                        </button>
+                    </div>
+                    <p id="lobby-seed-hint" class="lobby-field-hint">Use a mesma seed para recriar este território.</p>
+
+                    <label class="lobby-field-label" for="lobby-size-input">Tamanho do mapa</label>
+                    <div class="lobby-field lobby-size-field">
+                        <span class="lobby-field-mark lobby-field-mark--size" aria-hidden="true">×</span>
+                        <input id="lobby-size-input" type="number" inputmode="numeric" min="1" max="200" step="1" autocomplete="off" aria-describedby="lobby-size-hint">
+                        <span class="lobby-field-suffix">TILES</span>
+                    </div>
+                    <p id="lobby-size-hint" class="lobby-field-hint">De 1 a 200 tiles por lado.</p>
+
+                    <div class="lobby-config-actions">
+                        <button id="lobby-apply" class="lobby-button lobby-button--secondary" type="button">
+                            <span class="lobby-button-symbol" aria-hidden="true">✓</span>
+                            <span><strong>Aplicar alterações</strong><small>Gerar com esta seed</small></span>
+                        </button>
+                        <button id="lobby-regenerate" class="lobby-button lobby-button--regenerate" type="button">
+                            <span class="lobby-button-symbol lobby-button-symbol--refresh" aria-hidden="true">↻</span>
+                            <span><strong>Criar outro mapa</strong><small>Sortear uma nova seed</small></span>
+                        </button>
+                    </div>
+
+                    <p id="lobby-config-locked" class="lobby-locked-message" hidden>
+                        <span aria-hidden="true">◆</span>
+                        Somente o dono pode alterar o mundo.
+                    </p>
+                </section>
+
+                <section class="lobby-side-card lobby-players-card" aria-labelledby="lobby-players-title">
+                    <header class="lobby-side-heading lobby-side-heading--players">
+                        <div>
+                            <span class="lobby-section-kicker">COMPANHIA</span>
+                            <h2 id="lobby-players-title">Jogadores online</h2>
+                        </div>
+                        <strong id="lobby-player-count" class="lobby-player-count">0</strong>
+                    </header>
+
+                    <ul id="lobby-player-list" class="lobby-player-list" aria-live="polite">
+                        <li class="lobby-player-empty">Aguardando jogadores...</li>
+                    </ul>
+                </section>
+            </aside>
+        </div>
+
+        <footer class="lobby-footer">
+            <button id="lobby-leave" class="lobby-button lobby-button--leave" type="button">
+                <span class="lobby-button-symbol" aria-hidden="true">‹</span>
+                <span><strong>Sair da sala</strong><small>Voltar ao menu principal</small></span>
+            </button>
+
+            <div id="lobby-error" class="lobby-error" role="alert" hidden>
+                <span aria-hidden="true">!</span>
+                <p>Não foi possível concluir a ação.</p>
+            </div>
+
+            <div class="lobby-footer-action">
+                <div id="lobby-waiting" class="lobby-waiting" hidden>
+                    <span aria-hidden="true"><i></i><i></i><i></i></span>
+                    <p><strong>Aguardando o dono</strong><small>O anfitrião iniciará a partida.</small></p>
+                </div>
+                <button id="lobby-start" class="lobby-button lobby-button--start" type="button">
+                    <span class="lobby-button-symbol" aria-hidden="true">▶</span>
+                    <span><strong>Iniciar partida</strong><small>Levar todos para o reino</small></span>
+                </button>
+            </div>
+        </footer>
+    </article>
+</section>

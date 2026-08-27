@@ -49,28 +49,18 @@
     </div>
 
     <div id="host-menu" class="menu-view" hidden>
-        <div class="menu-card menu-card--dialog" role="group" aria-labelledby="host-menu-title">
+        <div class="menu-card menu-card--dialog menu-card--loading" role="status" aria-labelledby="host-menu-title">
             <p class="menu-kicker">NOVO REINO</p>
-            <h1 id="host-menu-title" class="menu-title">Criar partida</h1>
-            <p class="menu-description">Defina a dimensão do mapa que será gerado para esta aventura.</p>
+            <h1 id="host-menu-title" class="menu-title">Preparando a sala</h1>
+            <p class="menu-description">Abrindo o servidor e desenhando a primeira prévia do mundo.</p>
             <div class="menu-divider" aria-hidden="true"><span></span></div>
 
-            <label class="field-label" for="world-size-input">Tamanho do mundo</label>
-            <div id="world-size-field" class="menu-field world-size-field">
-                <span class="field-decoration" aria-hidden="true">×</span>
-                <input id="world-size-input" type="text" inputmode="numeric" maxlength="3" autocomplete="off" spellcheck="false" readonly aria-label="Tamanho do mundo" aria-describedby="world-size-hint">
-                <span id="world-size-display" class="field-display">TAMANHO DO MUNDO</span>
+            <div class="lobby-loading-mark" aria-hidden="true">
+                <span></span>
             </div>
-            <p id="world-size-hint" class="field-hint">Digite um valor de <strong>1 a 200</strong> blocos por lado.</p>
+            <p id="host-connection-status" class="connection-status" aria-live="polite">Iniciando servidor local...</p>
 
-            <button id="start-host-button" class="menu-button start-host-button" type="button" aria-label="Iniciar partida">
-                <span class="button-emblem" aria-hidden="true">▶</span>
-                <span class="button-copy">
-                    <strong>Iniciar partida</strong>
-                    <small>Criar e entrar no mundo</small>
-                </span>
-                <span class="button-arrow" aria-hidden="true">›</span>
-            </button>
+            <button id="cancel-host-button" class="menu-text-button" type="button">Cancelar e voltar</button>
         </div>
     </div>
 
@@ -89,11 +79,24 @@
             </div>
             <p id="game-code-hint" class="field-hint">Até <strong>7 caracteres</strong>, usando letras ou números.</p>
 
+            <button id="join-game-button" class="menu-button connect-button join-game-button" type="button" aria-label="Entrar na sala">
+                <span class="button-emblem" aria-hidden="true">⇄</span>
+                <span class="button-copy">
+                    <strong>Entrar na sala</strong>
+                    <small>Carregar lobby e prévia</small>
+                </span>
+                <span class="button-arrow" aria-hidden="true">›</span>
+            </button>
+
+            <p id="connect-status" class="connection-status" aria-live="polite"></p>
+
             <div class="keyboard-callout" aria-label="Pressione Enter para conectar ou Escape para voltar">
                 <span><kbd>ENTER</kbd> conectar</span>
                 <i aria-hidden="true"></i>
                 <span><kbd>ESC</kbd> voltar</span>
             </div>
+
+            <button id="cancel-connect-button" class="menu-text-button" type="button">Voltar ao menu</button>
         </div>
     </div>
 </section>

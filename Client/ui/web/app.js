@@ -1,10 +1,11 @@
 import {createGame} from "./game/game.js";
+import {createLobby} from "./lobby/lobby.js";
 import {createMenu} from "./menu/menu.js";
 import {createBridge} from "./shared/bridge.js";
 import {byId, initializeViewport} from "./shared/runtime.js";
 
 const SNAPSHOT_INTERVAL_MS = 50;
-const APP_VIEWS = new Set(["main", "host", "connect", "game"]);
+const APP_VIEWS = new Set(["main", "host", "connect", "lobby", "game"]);
 const bridge = createBridge();
 
 async function loadFragment(relativePath) {
@@ -22,6 +23,9 @@ function normalizeRemoteScreen(screen) {
     if (value === "game" || value === "partida") {
         return "game";
     }
+    if (value === "lobby" || value === "sala") {
+        return "lobby";
+    }
     if (value === "host" || value === "menu_host" || value === "menu_hostear") {
         return "host";
     }
@@ -33,12 +37,13 @@ function normalizeRemoteScreen(screen) {
 
 async function bootstrap() {
     const viewport = byId("viewport");
-    const [menuMarkup, gameMarkup] = await Promise.all([
+    const [menuMarkup, lobbyMarkup, gameMarkup] = await Promise.all([
         loadFragment("./menu/menu.html"),
+        loadFragment("./lobby/lobby.html"),
         loadFragment("./game/game.html"),
     ]);
 
-    viewport.innerHTML = `${menuMarkup}\n${gameMarkup}`;
+    viewport.innerHTML = `${menuMarkup}\n${lobbyMarkup}\n${gameMarkup}`;
 
     const disposeViewport = initializeViewport(viewport);
     const game = createGame({
@@ -48,10 +53,12 @@ async function bootstrap() {
 
     let currentView = "main";
     let worldRevision = -1;
+    let lobbyWorldRevision = -1;
     let snapshotTimer = null;
     let pollingStarted = false;
     let disposed = false;
     let menu = null;
+    let lobby = null;
 
     function setView(view) {
         if (!APP_VIEWS.has(view) || !menu) {
@@ -60,9 +67,14 @@ async function bootstrap() {
 
         currentView = view;
         menu.show(view);
+        lobby.show(view);
         game.setVisible(view === "game");
     }
 
+    lobby = createLobby({
+        callBridge: bridge.call,
+        requestView: setView,
+    });
     menu = createMenu({
         callBridge: bridge.call,
         requestView: setView,
@@ -74,6 +86,8 @@ async function bootstrap() {
 
         if (remoteView === "game") {
             setView("game");
+        } else if (remoteView === "lobby") {
+            setView("lobby");
         } else if (remoteView === "host" || remoteView === "connect") {
             setView(remoteView);
         } else if (currentView === "game") {
@@ -87,9 +101,20 @@ async function bootstrap() {
         }
 
         if (Object.prototype.hasOwnProperty.call(snapshot, "world_revision")) {
-            worldRevision = snapshot.world_revision;
+            if (snapshot.screen === "game") {
+                worldRevision = snapshot.world_revision;
+            }
+        }
+        if (snapshot.lobby && typeof snapshot.lobby === "object") {
+            lobby.applySnapshot(snapshot.lobby);
+            if (Object.prototype.hasOwnProperty.call(snapshot.lobby, "world_revision")) {
+                lobbyWorldRevision = snapshot.lobby.world_revision;
+            }
+        } else if (snapshot.screen !== "game") {
+            lobbyWorldRevision = -1;
         }
 
+        menu.applySnapshot(snapshot);
         game.applySnapshot(snapshot);
         applyRemoteScreen(snapshot.screen);
     }
@@ -99,7 +124,11 @@ async function bootstrap() {
             return;
         }
 
-        const snapshot = await bridge.call("get_snapshot", worldRevision);
+        const snapshot = await bridge.call(
+            "get_snapshot",
+            worldRevision,
+            lobbyWorldRevision,
+        );
         if (disposed) {
             return;
         }
@@ -128,6 +157,7 @@ async function bootstrap() {
         }
         stopWatchingBridge();
         menu.dispose();
+        lobby.dispose();
         game.dispose();
         disposeViewport();
         bridge.dispose();

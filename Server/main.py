@@ -12,7 +12,19 @@ from connections.transport.websocket_manager import websocket_handler
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     if state.matriz_dict is None:
-        world.criar_matriz()
+        matriz, matriz_dict = await asyncio.to_thread(
+            world.gerar_mundo,
+            state.largura_grid,
+            state.altura_grid,
+            state.world_seed,
+        )
+        world.publicar_mundo(
+            matriz,
+            matriz_dict,
+            state.largura_grid,
+            state.altura_grid,
+            state.world_seed,
+        )
 
     task = asyncio.create_task(tick_loop())
     try:

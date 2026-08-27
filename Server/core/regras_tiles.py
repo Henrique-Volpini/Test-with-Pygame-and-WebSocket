@@ -64,6 +64,7 @@ def _trocar_e_registrar(data, pos, nova_construcao):
             state.players[data["player_id"]].registrar_construcao(state.matriz[y][x], (x, y))
 
         state.matriz_dict = world.transformar_matriz_em_dict(state.matriz)
+        state.world_revision += 1
         
 def trocar_para_grass(data):
     x, y = data["x, y"]

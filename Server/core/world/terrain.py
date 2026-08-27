@@ -1,7 +1,5 @@
 import core.tile as tile
 
-from core.state import state
-
 from .config import (
     MOUNTAIN_TILE_THRESHOLD,
     WATER_BIRTH_MIN_NEIGHBORS,
@@ -13,10 +11,12 @@ from .smoothing import suavizar_lagos
 
 
 def transformar_noise_em_tiles(mapa):
-    matriz_tiles = [[None for _ in range(state.largura_grid)] for _ in range(state.altura_grid)]
+    altura = len(mapa)
+    largura = len(mapa[0]) if altura else 0
+    matriz_tiles = [[None for _ in range(largura)] for _ in range(altura)]
 
-    for y in range(state.altura_grid):
-        for x in range(state.largura_grid):
+    for y in range(altura):
+        for x in range(largura):
             valor = mapa[y][x]
             if valor <= WATER_TILE_THRESHOLD:
                 matriz_tiles[y][x] = tile.Water(current_player=None)

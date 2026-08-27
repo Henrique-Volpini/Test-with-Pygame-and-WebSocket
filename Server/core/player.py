@@ -4,9 +4,11 @@ from core.state import state
 players = state.players
 
 class Player:
-    def __init__(self, player_id, controller):
+    def __init__(self, player_id, controller, join_order, is_host=False):
         self.id = player_id
-        self.controller = controller 
+        self.controller = controller
+        self.join_order = join_order
+        self.is_host = is_host
         self.recursos = recursos.Recursos()
         self._construcoes = []
 

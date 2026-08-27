@@ -75,7 +75,11 @@
 }
 
 .menu-card--connect {
-    top: 350px;
+    top: 262px;
+}
+
+.menu-card--loading {
+    top: 300px;
 }
 
 .menu-kicker {
@@ -195,10 +199,8 @@
     --button-accent-bright: #d77a68;
 }
 
-.start-host-button {
-    --button-accent: #819b45;
-    --button-accent-bright: #c5dc79;
-    margin-top: 22px;
+.join-game-button {
+    margin-top: 20px;
 }
 
 .menu-button:hover {
@@ -228,7 +230,8 @@
 }
 
 .menu-button:focus-visible,
-.fullscreen-button:focus-visible {
+.fullscreen-button:focus-visible,
+.menu-text-button:focus-visible {
     outline: 2px solid #fff1bd;
     outline-offset: 4px;
 }
@@ -431,6 +434,83 @@
     font-weight: 700;
 }
 
+.lobby-loading-mark {
+    position: relative;
+    display: grid;
+    width: 82px;
+    height: 82px;
+    margin: 18px auto 15px;
+    place-items: center;
+    border: 1px solid rgba(199, 150, 67, 0.42);
+    background: rgba(12, 9, 7, 0.38);
+    box-shadow: inset 0 0 0 5px rgba(255, 255, 255, 0.02);
+    transform: rotate(45deg);
+}
+
+.lobby-loading-mark::before,
+.lobby-loading-mark::after,
+.lobby-loading-mark span {
+    content: "";
+    position: absolute;
+    border: 2px solid transparent;
+    border-top-color: var(--gold-bright);
+    border-radius: 50%;
+    animation: lobby-loading-spin 1.2s linear infinite;
+}
+
+.lobby-loading-mark::before {
+    inset: 13px;
+}
+
+.lobby-loading-mark::after {
+    inset: 23px;
+    border-top-color: #91ad55;
+    animation-direction: reverse;
+    animation-duration: 850ms;
+}
+
+.lobby-loading-mark span {
+    inset: 33px;
+    border-color: var(--gold-dark);
+    border-radius: 0;
+    animation: none;
+}
+
+.connection-status {
+    min-height: 36px;
+    margin: 10px 0 0;
+    color: #b8a47d;
+    font-family: "Courier New", monospace;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 17px;
+    text-align: center;
+}
+
+.connection-status.is-error {
+    color: #e08a72;
+}
+
+.menu-text-button {
+    display: block;
+    margin: 14px auto 0;
+    padding: 7px 11px;
+    color: #ac9976;
+    border-bottom: 1px solid rgba(199, 150, 67, 0.35);
+    font-family: "Courier New", monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 120ms ease, border-color 120ms ease;
+}
+
+.menu-text-button:hover {
+    color: #f0dba9;
+    border-color: var(--gold-bright);
+}
+
 .keyboard-callout {
     display: flex;
     align-items: center;
@@ -553,11 +633,19 @@
     }
 }
 
+@keyframes lobby-loading-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .menu-card,
     .menu-button,
     .menu-button::before,
     .button-arrow,
+    .lobby-loading-mark::before,
+    .lobby-loading-mark::after,
     .fullscreen-button {
         animation: none;
         transition: none;

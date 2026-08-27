@@ -1,6 +1,7 @@
 import importlib.util
 import os
 from pathlib import Path
+import secrets
 import socket
 import subprocess
 import sys
@@ -28,7 +29,7 @@ def porta_servidor_em_uso():
         sock.close()
 
 
-def iniciar(tamanho_mundo=None):
+def iniciar(tamanho_mundo=None, seed=None, game_code=""):
     global _process, _log_handle
 
     if isinstance(tamanho_mundo, bool) or (
@@ -37,6 +38,16 @@ def iniciar(tamanho_mundo=None):
     ):
         with state.lock:
             state.erro_conexao = "O tamanho do mundo deve estar entre 1 e 200."
+        return False
+    if (
+        isinstance(seed, bool)
+        or (
+            seed is not None
+            and (not isinstance(seed, int) or not 0 <= seed <= 2_147_483_647)
+        )
+    ):
+        with state.lock:
+            state.erro_conexao = "A seed deve estar entre 0 e 2147483647."
         return False
 
     with state.lock:
@@ -80,7 +91,13 @@ def iniciar(tamanho_mundo=None):
         print(erro)
         return False
 
-    state.resetar_sessao(LOCAL_WS_URL, "Iniciando servidor local...", "host")
+    host_token = secrets.token_urlsafe(32)
+    state.resetar_sessao(
+        LOCAL_WS_URL,
+        "Iniciando servidor local...",
+        "host",
+        lobby_code=game_code,
+    )
 
     with _lifecycle_lock:
         try:
@@ -92,6 +109,9 @@ def iniciar(tamanho_mundo=None):
                 ambiente_servidor = os.environ.copy()
                 if tamanho_mundo is not None:
                     ambiente_servidor["TILE_GAME_WORLD_SIZE"] = str(tamanho_mundo)
+                if seed is not None:
+                    ambiente_servidor["TILE_GAME_WORLD_SEED"] = str(seed)
+                ambiente_servidor["TILE_GAME_HOST_TOKEN"] = host_token
                 _process = subprocess.Popen(
                     [sys.executable, str(SERVER_DIR / "main.py")],
                     cwd=SERVER_DIR,
@@ -108,7 +128,7 @@ def iniciar(tamanho_mundo=None):
             print(erro)
             return False
 
-    net.iniciar(LOCAL_WS_URL)
+    net.iniciar(LOCAL_WS_URL, host_token=host_token)
     return True
 
 

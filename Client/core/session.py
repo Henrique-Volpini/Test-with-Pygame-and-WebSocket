@@ -1,3 +1,5 @@
+import secrets
+
 from connection import lan_code, local_server, net
 from core.state import state
 
@@ -18,7 +20,7 @@ TILES_CONSTRUCAO = frozenset(
 )
 
 
-def hostear(tamanho):
+def hostear(tamanho=90, seed=None):
     if isinstance(tamanho, bool):
         return {"ok": False}
     if isinstance(tamanho, str):
@@ -33,6 +35,22 @@ def hostear(tamanho):
         print("O tamanho do mundo deve estar entre 1 e 200.")
         return {"ok": False}
 
+    if seed is None:
+        seed_mundo = secrets.randbelow(2_147_483_648)
+    elif isinstance(seed, bool):
+        return {"ok": False}
+    elif isinstance(seed, str):
+        seed = seed.strip()
+        if not seed.isdigit() or len(seed) > 10:
+            return {"ok": False}
+        seed_mundo = int(seed)
+    elif isinstance(seed, int):
+        seed_mundo = seed
+    else:
+        return {"ok": False}
+    if not 0 <= seed_mundo <= 2_147_483_647:
+        return {"ok": False}
+
     try:
         ip_host = lan_code.obter_ip_preferido()
         codigo = lan_code.ip_para_codigo(ip_host)
@@ -40,9 +58,16 @@ def hostear(tamanho):
         print(f"Nao foi possivel criar o codigo: {exc}")
         return {"ok": False}
 
-    print(f"Tamanho do mundo enviado: {tamanho_mundo}x{tamanho_mundo}")
+    print(f"Lobby criado para mundo {tamanho_mundo}x{tamanho_mundo}")
     print(f"Codigo da partida: {codigo}")
-    return {"ok": local_server.iniciar(tamanho_mundo), "code": codigo}
+    return {
+        "ok": local_server.iniciar(
+            tamanho_mundo,
+            seed_mundo,
+            game_code=codigo,
+        ),
+        "code": codigo,
+    }
 
 
 def conectar(codigo):
@@ -55,9 +80,92 @@ def conectar(codigo):
         return {"ok": False}
 
     net.parar()
-    state.resetar_sessao(uri, "Conectando ao host...", "connect")
+    state.resetar_sessao(
+        uri,
+        "Conectando ao host...",
+        "connect",
+        lobby_code=codigo.strip().upper(),
+    )
     print(f"Conectando em {ip_host}...")
     net.iniciar(uri)
+    return {"ok": True}
+
+
+def configurar_lobby(seed, tamanho):
+    if (
+        isinstance(seed, bool)
+        or not isinstance(seed, int)
+        or not 0 <= seed <= 2_147_483_647
+        or isinstance(tamanho, bool)
+        or not isinstance(tamanho, int)
+        or not 1 <= tamanho <= 200
+    ):
+        return {"ok": False}
+
+    with state.lock:
+        if state.estado_jogo != "lobby" or not state.lobby_is_host:
+            return {"ok": False}
+        state.lobby_generating = True
+        state.lobby_error = None
+        state.lobby_status = "Gerando uma nova prévia do mundo..."
+
+    enviado = net.enviar(
+        {
+            "tipo": "configurar_lobby",
+            "seed": seed,
+            "tamanho": tamanho,
+        }
+    )
+    if not enviado:
+        with state.lock:
+            state.lobby_generating = False
+            state.lobby_error = "Não foi possível enviar a configuração ao servidor."
+            state.lobby_status = "Falha ao atualizar o mundo."
+    return {"ok": enviado}
+
+
+def regenerar_lobby(tamanho):
+    if (
+        isinstance(tamanho, bool)
+        or not isinstance(tamanho, int)
+        or not 1 <= tamanho <= 200
+    ):
+        return {"ok": False}
+
+    with state.lock:
+        if state.estado_jogo != "lobby" or not state.lobby_is_host:
+            return {"ok": False}
+        state.lobby_generating = True
+        state.lobby_error = None
+        state.lobby_status = "Gerando uma nova prévia do mundo..."
+
+    enviado = net.enviar({"tipo": "regenerar_lobby", "tamanho": tamanho})
+    if not enviado:
+        with state.lock:
+            state.lobby_generating = False
+            state.lobby_error = "Não foi possível pedir um novo mundo ao servidor."
+            state.lobby_status = "Falha ao gerar outro mundo."
+    return {"ok": enviado}
+
+
+def iniciar_lobby():
+    with state.lock:
+        if (
+            state.estado_jogo != "lobby"
+            or not state.lobby_is_host
+            or state.lobby_generating
+        ):
+            return {"ok": False}
+    return {"ok": net.enviar({"tipo": "iniciar_partida"})}
+
+
+def sair_lobby():
+    with state.lock:
+        session_mode = state.session_mode
+    net.parar()
+    if session_mode == "host":
+        local_server.encerrar()
+    state.voltar_ao_menu()
     return {"ok": True}
 
 

@@ -27,17 +27,20 @@ python Client\main.py
 O `Client/index.html` é apenas o ponto de entrada da interface. Cada parte do jogo mantém seu próprio HTML, CSS e JavaScript:
 
 - `Client/ui/web/menu/`: menu principal, host e conexão.
+- `Client/ui/web/lobby/`: prévia do mundo, seed, configurações e jogadores da sala.
 - `Client/ui/web/game/`: canvas, HUD, seleção e construção.
 - `Client/ui/web/shared/`: ponte com o pywebview e utilitários compartilhados.
-- `Client/ui/web/app.js`: carrega os fragmentos e coordena a transição entre menu e partida.
+- `Client/ui/web/app.js`: carrega os fragmentos e coordena a transição entre menu, sala e partida.
 
 ## Hospedar uma partida
 
 1. Clique em **Hostear**.
-2. Digite no campo o tamanho do mundo, entre `1` e `200`. O valor é usado na largura e na altura; por exemplo, `50` gera um mundo `50 × 50`.
-3. Clique em **Iniciar**.
-4. O terminal mostrará o tamanho enviado e o código da partida.
-5. Compartilhe o código com os outros jogadores e mantenha o cliente aberto.
+2. Aguarde a abertura da sala e a geração da prévia do mundo.
+3. Compartilhe o código exibido no topo com os outros jogadores.
+4. Se quiser, edite a seed ou o tamanho (`1` a `200`) e clique em **Aplicar alterações**. **Criar outro mapa** sorteia uma nova seed.
+5. Confira os jogadores online e clique em **Iniciar partida** quando todos estiverem prontos.
+
+Somente o anfitrião pode alterar o mapa ou iniciar a partida. A prévia exibida no lobby é o mesmo mundo usado no jogo.
 
 O cliente inicia `Server/main.py` automaticamente. Mundos grandes demoram mais para serem gerados; um mundo `200 × 200` pode levar vários segundos antes de a partida abrir.
 
@@ -46,7 +49,8 @@ O cliente inicia `Server/main.py` automaticamente. Mundos grandes demoram mais p
 1. Esteja na mesma rede local ou rede virtual do host.
 2. Clique em **Conectar**.
 3. Digite o código no campo dentro do jogo.
-4. Pressione `Enter` para conectar ou `Esc` para voltar ao menu.
+4. Pressione `Enter` ou clique em **Entrar na sala**.
+5. Confira a prévia, a seed e os jogadores enquanto aguarda o anfitrião iniciar.
 
 O código representa o endereço IPv4 do host. Ele funciona pela rede local e prioriza endereços do Hamachi (`25.x.x.x`) e Radmin VPN (`26.x.x.x`). Ele não permite conexão direta pela internet sem uma LAN virtual ou configuração de rede equivalente.
 

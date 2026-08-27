@@ -1,6 +1,7 @@
 import {bindPrimaryAction, byId} from "../shared/runtime.js";
 
-const MENU_VIEWS = new Set(["main", "host", "connect", "game"]);
+const MENU_VIEWS = new Set(["main", "host", "connect", "lobby", "game"]);
+const DEFAULT_WORLD_SIZE = 90;
 
 export function createMenu({callBridge, requestView}) {
     const menuScreen = byId("menu-screen");
@@ -110,37 +111,39 @@ export function createMenu({callBridge, requestView}) {
         };
     }
 
+    function updateStatus(element, message, isError = false) {
+        element.textContent = message || "";
+        element.classList.toggle("is-error", isError);
+    }
+
     async function hostGame() {
-        worldSizeField.blur();
-        const rawValue = worldSizeField.value;
-
-        if (!/^[0-9]+$/.test(rawValue)) {
-            return;
+        const status = byId("host-connection-status");
+        updateStatus(status, "Iniciando servidor local...");
+        const result = await callBridge("host_game", DEFAULT_WORLD_SIZE, null);
+        if (!result || result.ok === false) {
+            updateStatus(
+                status,
+                "Não foi possível abrir a sala. Consulte o detalhe acima ou tente novamente.",
+                true,
+            );
         }
-
-        const value = Number(rawValue);
-        if (!Number.isInteger(value) || value < 1 || value > 200) {
-            return;
-        }
-
-        await callBridge("host_game", value);
     }
 
     async function connectGame(code) {
+        const status = byId("connect-status");
+        updateStatus(status, "Procurando a sala na rede...");
         const result = await callBridge("connect_game", String(code).toUpperCase());
         if (result && result.ok === false) {
+            updateStatus(status, "Código inválido. Confira e tente novamente.", true);
             gameCodeField.clear();
             gameCodeField.focus();
         }
     }
 
-    const worldSizeField = createTextField(
-        "world-size-input",
-        "world-size-display",
-        "TAMANHO DO MUNDO",
-        /^[0-9]$/,
-        3,
-    );
+    async function leaveToMain() {
+        await callBridge("leave_lobby");
+        requestView("main");
+    }
 
     const gameCodeField = createTextField(
         "game-code-input",
@@ -150,7 +153,7 @@ export function createMenu({callBridge, requestView}) {
         7,
         {
             confirm: (value) => void connectGame(value),
-            cancel: () => requestView("main"),
+            cancel: () => void leaveToMain(),
         },
     );
 
@@ -160,14 +163,11 @@ export function createMenu({callBridge, requestView}) {
         }
 
         activeView = view;
-        menuScreen.hidden = view === "game";
+        menuScreen.hidden = view === "game" || view === "lobby";
         mainMenu.hidden = view !== "main";
         hostMenu.hidden = view !== "host";
         connectMenu.hidden = view !== "connect";
 
-        if (view !== "host") {
-            worldSizeField.blur();
-        }
         if (view !== "connect") {
             gameCodeField.blur();
         }
@@ -178,11 +178,6 @@ export function createMenu({callBridge, requestView}) {
             return;
         }
         if (
-            activeView === "host" &&
-            !byId("world-size-field").contains(event.target)
-        ) {
-            worldSizeField.blur();
-        } else if (
             activeView === "connect" &&
             !byId("game-code-field").contains(event.target)
         ) {
@@ -209,13 +204,13 @@ export function createMenu({callBridge, requestView}) {
     });
 
     disposers.push(bindPrimaryAction(byId("host-button"), () => {
-        worldSizeField.clear();
         requestView("host");
-        window.requestAnimationFrame(() => worldSizeField.focus());
+        void hostGame();
     }));
 
     disposers.push(bindPrimaryAction(byId("connect-button"), () => {
         gameCodeField.clear();
+        updateStatus(byId("connect-status"), "");
         requestView("connect");
         window.requestAnimationFrame(() => gameCodeField.focus());
     }));
@@ -228,12 +223,33 @@ export function createMenu({callBridge, requestView}) {
         void callBridge("toggle_fullscreen");
     }));
 
-    disposers.push(bindPrimaryAction(byId("start-host-button"), () => {
-        void hostGame();
+    disposers.push(bindPrimaryAction(byId("join-game-button"), () => {
+        void connectGame(gameCodeField.value);
+    }));
+
+    disposers.push(bindPrimaryAction(byId("cancel-host-button"), () => {
+        void leaveToMain();
+    }));
+
+    disposers.push(bindPrimaryAction(byId("cancel-connect-button"), () => {
+        void leaveToMain();
     }));
 
     return {
         show,
+        applySnapshot(snapshot) {
+            const connection = snapshot && snapshot.connection;
+            if (!connection || typeof connection !== "object") {
+                return;
+            }
+            const isError = Boolean(connection.error);
+            const message = connection.status || connection.error || "";
+            if (activeView === "host") {
+                updateStatus(byId("host-connection-status"), message, isError);
+            } else if (activeView === "connect") {
+                updateStatus(byId("connect-status"), message, isError);
+            }
+        },
         dispose() {
             while (disposers.length > 0) {
                 disposers.pop()();

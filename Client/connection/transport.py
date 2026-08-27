@@ -1,28 +1,39 @@
 import asyncio
+import inspect
 import json
 import threading
 
 
 class _ConnectionRuntime:
-    def __init__(self):
+    def __init__(self, headers=None):
         self.stop_event = threading.Event()
         self.thread = None
         self.loop = None
         self.ws = None
+        self.headers = dict(headers or {})
 
 
 _runtime = None
 _runtime_lock = threading.RLock()
 
 
-def iniciar(uri, on_message, on_status=None):
+def _close_code(error):
+    code = getattr(error, "code", None)
+    if isinstance(code, int):
+        return code
+    received = getattr(error, "rcvd", None)
+    code = getattr(received, "code", None)
+    return code if isinstance(code, int) else None
+
+
+def iniciar(uri, on_message, on_status=None, headers=None):
     global _runtime
 
     with _runtime_lock:
         if _runtime is not None and _runtime.thread.is_alive():
             return
 
-        runtime = _ConnectionRuntime()
+        runtime = _ConnectionRuntime(headers=headers)
         runtime.thread = threading.Thread(
             target=_rodar_rede,
             args=(runtime, uri, on_message, on_status),
@@ -102,11 +113,21 @@ async def _loop_rede(runtime, uri, on_message, on_status):
     try:
         while not runtime.stop_event.is_set():
             try:
-                async with websockets.connect(
-                    uri,
-                    open_timeout=2,
-                    max_size=16 * 1024 * 1024,
-                ) as ws:
+                connect_options = {
+                    "open_timeout": 2,
+                    "max_size": 16 * 1024 * 1024,
+                }
+                if runtime.headers:
+                    header_parameter = (
+                        "additional_headers"
+                        if "additional_headers" in inspect.signature(
+                            websockets.connect
+                        ).parameters
+                        else "extra_headers"
+                    )
+                    connect_options[header_parameter] = runtime.headers
+
+                async with websockets.connect(uri, **connect_options) as ws:
                     with _runtime_lock:
                         runtime.ws = ws
 
@@ -124,12 +145,16 @@ async def _loop_rede(runtime, uri, on_message, on_status):
             except asyncio.CancelledError:
                 break
             except Exception as exc:
+                permanent_close = _close_code(exc) == 1008
                 if (
                     not runtime.stop_event.is_set()
                     and on_status is not None
                     and _runtime_atual(runtime)
                 ):
                     on_status(False, str(exc))
+                if permanent_close:
+                    runtime.stop_event.set()
+                    break
                 await asyncio.sleep(0.25)
             finally:
                 with _runtime_lock:
