@@ -1,0 +1,142 @@
+<section id="game-screen" class="screen" hidden>
+    <div class="world-backdrop" aria-hidden="true"></div>
+    <canvas id="world-canvas" width="1280" height="960"></canvas>
+
+    <header id="resource-hud" aria-label="Recursos do reino">
+        <div class="hud-panel">
+            <div class="hud-heading">
+                <span class="hud-kicker">DOMÍNIO</span>
+                <strong>Recursos</strong>
+            </div>
+
+            <div class="resource-item resource-item--gold">
+                <span class="resource-icon resource-icon--gold" aria-hidden="true"><i></i></span>
+                <span class="resource-copy">
+                    <span class="resource-label">Ouro</span>
+                    <strong id="gold-value" class="resource-value">500</strong>
+                </span>
+            </div>
+
+            <div class="resource-item resource-item--wood">
+                <span class="resource-icon resource-icon--wood" aria-hidden="true"><i></i></span>
+                <span class="resource-copy">
+                    <span class="resource-label">Madeira</span>
+                    <strong id="wood-value" class="resource-value">500</strong>
+                </span>
+            </div>
+
+            <div class="resource-item resource-item--food">
+                <span class="resource-icon resource-icon--food" aria-hidden="true"><i></i></span>
+                <span class="resource-copy">
+                    <span class="resource-label">Comida</span>
+                    <strong id="food-value" class="resource-value">500</strong>
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <div id="build-menu" hidden>
+        <aside id="build-info" class="build-info" role="tooltip" aria-hidden="true">
+            <div class="build-info-layout">
+                <div class="build-info-copy">
+                    <span id="build-info-category" class="build-info-kicker">CONSTRUÇÃO</span>
+                    <div class="build-info-title-row">
+                        <h3 id="build-info-name">Estrutura</h3>
+                        <span id="build-info-requirement" class="build-info-requirement"></span>
+                    </div>
+                    <p id="build-info-description"></p>
+                </div>
+
+                <div class="build-info-costs">
+                    <div class="build-info-cost-heading">
+                        <span>CUSTO</span>
+                        <strong id="build-info-status">DISPONÍVEL</strong>
+                    </div>
+                    <div class="build-cost-list" aria-label="Custo da construção">
+                        <span id="build-cost-gold" class="build-cost build-cost--gold">
+                            <i aria-hidden="true"></i>
+                            <span><small>OURO</small><strong id="build-cost-gold-value">0</strong></span>
+                        </span>
+                        <span id="build-cost-wood" class="build-cost build-cost--wood">
+                            <i aria-hidden="true"></i>
+                            <span><small>MADEIRA</small><strong id="build-cost-wood-value">0</strong></span>
+                        </span>
+                        <span id="build-cost-food" class="build-cost build-cost--food">
+                            <i aria-hidden="true"></i>
+                            <span><small>COMIDA</small><strong id="build-cost-food-value">0</strong></span>
+                        </span>
+                        <span id="build-cost-free" class="build-cost-free" hidden>SEM CUSTO</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <section class="build-panel" aria-labelledby="build-title">
+            <header class="build-header">
+                <div>
+                    <h2 id="build-title">Escolha uma estrutura</h2>
+                </div>
+                <p>Passe o mouse para ver detalhes · clique para construir</p>
+            </header>
+
+            <div class="build-options">
+                <button class="build-button" type="button" data-tile="town_center" data-name="Centro urbano" data-category="EDIFICAÇÃO PRINCIPAL" data-description="Ergue o centro do reino e transforma os tiles vizinhos em cidades." data-requirement="Requer grama no raio de 1 tile" data-cost-gold="200" data-cost-wood="150" data-cost-food="100" aria-label="Construir centro urbano">
+                    <span class="build-hotkey" aria-hidden="true">V</span>
+                    <span class="build-tile-preview"><img src="assets/images/Town_Center.png" alt="" draggable="false"></span>
+                    <span class="build-label">Centro</span>
+                </button>
+                <button class="build-button" type="button" data-tile="city" data-name="Cidade" data-category="EDIFICAÇÃO" data-description="Transforma o tile em cidade. Não gera recursos atualmente." data-requirement="Estrutura urbana" data-cost-gold="0" data-cost-wood="10" data-cost-food="0" aria-label="Construir cidade">
+                    <span class="build-tile-preview"><img src="assets/images/City.png" alt="" draggable="false"></span>
+                    <span class="build-label">Cidade</span>
+                </button>
+                <button class="build-button" type="button" data-tile="water" data-name="Água" data-category="TERRENO" data-description="Transforma o tile em água. Não gera recursos." data-requirement="Alteração de terreno" data-cost-gold="0" data-cost-wood="0" data-cost-food="0" aria-label="Colocar água">
+                    <span class="build-tile-preview"><img src="assets/images/Water.png" alt="" draggable="false"></span>
+                    <span class="build-label">Água</span>
+                </button>
+                <button class="build-button" type="button" data-tile="mountain" data-name="Montanha" data-category="TERRENO" data-description="Cria a base rochosa necessária para erguer uma mina." data-requirement="Base para minas" data-cost-gold="80" data-cost-wood="0" data-cost-food="0" aria-label="Colocar montanha">
+                    <span class="build-tile-preview"><img src="assets/images/Mountain.png" alt="" draggable="false"></span>
+                    <span class="build-label">Montanha</span>
+                </button>
+                <button class="build-button" type="button" data-tile="mine" data-name="Mina" data-category="PRODUÇÃO" data-description="Produz 10 de ouro a cada 10 segundos." data-requirement="Somente sobre uma montanha" data-cost-gold="30" data-cost-wood="120" data-cost-food="60" aria-label="Construir mina">
+                    <span class="build-tile-preview"><img src="assets/images/Mine.png" alt="" draggable="false"></span>
+                    <span class="build-label">Mina</span>
+                </button>
+                <button class="build-button" type="button" data-tile="lumberjack_cabin" data-name="Madeireiro" data-category="PRODUÇÃO" data-description="Produz madeira a cada 10 segundos: Bosque +1, Floresta +2 e Mata densa +3." data-requirement="Raio de coleta: 2 tiles" data-cost-gold="80" data-cost-wood="120" data-cost-food="0" aria-label="Construir cabana de madeireiro">
+                    <span class="build-tile-preview"><img src="assets/images/LumberjackCabin.png" alt="" draggable="false"></span>
+                    <span class="build-label">Madeireiro</span>
+                </button>
+                <button class="build-button" type="button" data-tile="grass" data-name="Terreno" data-category="TERRENO" data-description="Limpa o tile atual e restaura um terreno de grama." data-requirement="Substitui o terreno atual" data-cost-gold="20" data-cost-wood="0" data-cost-food="0" aria-label="Colocar terreno de grama">
+                    <span class="build-tile-preview"><img src="assets/images/Grass.png" alt="" draggable="false"></span>
+                    <span class="build-label">Terreno</span>
+                </button>
+                <button class="build-button" type="button" data-tile="small_forest" data-name="Bosque" data-category="VEGETAÇÃO" data-description="Acrescenta +1 madeira a cada 10 segundos para madeireiros próximos." data-requirement="Alcance: 2 tiles" data-cost-gold="30" data-cost-wood="0" data-cost-food="0" aria-label="Colocar bosque">
+                    <span class="build-hotkey" aria-hidden="true">B</span>
+                    <span class="build-tile-preview"><img src="assets/images/Small_Forest.png" alt="" draggable="false"></span>
+                    <span class="build-label">Bosque</span>
+                </button>
+                <button class="build-button" type="button" data-tile="medium_forest" data-name="Floresta" data-category="VEGETAÇÃO" data-description="Acrescenta +2 madeira a cada 10 segundos para madeireiros próximos." data-requirement="Alcance: 2 tiles" data-cost-gold="50" data-cost-wood="0" data-cost-food="0" aria-label="Colocar floresta">
+                    <span class="build-tile-preview"><img src="assets/images/Medium_Forest.png" alt="" draggable="false"></span>
+                    <span class="build-label">Floresta</span>
+                </button>
+                <button class="build-button" type="button" data-tile="big_forest" data-name="Mata densa" data-category="VEGETAÇÃO" data-description="Acrescenta +3 madeira a cada 10 segundos para madeireiros próximos." data-requirement="Alcance: 2 tiles" data-cost-gold="80" data-cost-wood="0" data-cost-food="0" aria-label="Colocar mata densa">
+                    <span class="build-tile-preview"><img src="assets/images/Big_Forest.png" alt="" draggable="false"></span>
+                    <span class="build-label">Mata densa</span>
+                </button>
+            </div>
+        </section>
+    </div>
+</section>
+
+<div id="asset-registry" hidden aria-hidden="true">
+    <img id="asset-grass" src="assets/images/Grass.png" alt="">
+    <img id="asset-town-center" src="assets/images/Town_Center.png" alt="">
+    <img id="asset-lumberjack-cabin" src="assets/images/LumberjackCabin.png" alt="">
+    <img id="asset-small-forest" src="assets/images/Small_Forest.png" alt="">
+    <img id="asset-mountain" src="assets/images/Mountain.png" alt="">
+    <img id="asset-mine" src="assets/images/Mine.png" alt="">
+    <img id="asset-city" src="assets/images/City.png" alt="">
+    <img id="asset-water" src="assets/images/Water.png" alt="">
+    <img id="asset-medium-forest" src="assets/images/Medium_Forest.png" alt="">
+    <img id="asset-big-forest" src="assets/images/Big_Forest.png" alt="">
+    <img id="asset-selected" src="assets/images/Selected.png" alt="">
+</div>

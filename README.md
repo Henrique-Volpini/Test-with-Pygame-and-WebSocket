@@ -22,6 +22,15 @@ Nas próximas execuções:
 python Client\main.py
 ```
 
+## Estrutura do frontend
+
+O `Client/index.html` é apenas o ponto de entrada da interface. Cada parte do jogo mantém seu próprio HTML, CSS e JavaScript:
+
+- `Client/ui/web/menu/`: menu principal, host e conexão.
+- `Client/ui/web/game/`: canvas, HUD, seleção e construção.
+- `Client/ui/web/shared/`: ponte com o pywebview e utilitários compartilhados.
+- `Client/ui/web/app.js`: carrega os fragmentos e coordena a transição entre menu e partida.
+
 ## Hospedar uma partida
 
 1. Clique em **Hostear**.
