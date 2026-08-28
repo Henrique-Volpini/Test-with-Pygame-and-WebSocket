@@ -28,6 +28,15 @@
                     <span class="button-arrow" aria-hidden="true">›</span>
                 </button>
 
+                <button id="settings-button" class="menu-button menu-settings-button" type="button" aria-label="Abrir configurações">
+                    <span class="button-emblem" aria-hidden="true">&#9881;</span>
+                    <span class="button-copy">
+                        <strong>Configurações</strong>
+                        <small>Vídeo, resolução e mais</small>
+                    </span>
+                    <span class="button-arrow" aria-hidden="true">›</span>
+                </button>
+
                 <button id="exit-button" class="menu-button exit-button" type="button" aria-label="Sair do jogo">
                     <span class="button-emblem" aria-hidden="true">×</span>
                     <span class="button-copy">
@@ -74,10 +83,10 @@
             <label class="field-label" for="game-code-input">Código da partida</label>
             <div id="game-code-field" class="menu-field game-code-field">
                 <span class="field-decoration field-decoration--code" aria-hidden="true">#</span>
-                <input id="game-code-input" type="text" inputmode="text" maxlength="7" autocomplete="off" spellcheck="false" readonly aria-label="Código da partida" aria-describedby="game-code-hint">
+                <input id="game-code-input" type="text" inputmode="text" maxlength="9" autocomplete="off" spellcheck="false" aria-label="Código da partida" aria-describedby="game-code-hint">
                 <span id="game-code-display" class="field-display">CÓDIGO</span>
             </div>
-            <p id="game-code-hint" class="field-hint">Até <strong>7 caracteres</strong>, usando letras ou números.</p>
+            <p id="game-code-hint" class="field-hint">Cole ou digite até <strong>9 caracteres</strong>.</p>
 
             <button id="join-game-button" class="menu-button connect-button join-game-button" type="button" aria-label="Entrar na sala">
                 <span class="button-emblem" aria-hidden="true">⇄</span>

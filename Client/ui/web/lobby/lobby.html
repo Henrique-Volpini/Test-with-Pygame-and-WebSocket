@@ -54,6 +54,46 @@
                     <div class="lobby-map-scale" aria-hidden="true"><i></i><i></i><i></i></div>
                 </div>
 
+                <section id="lobby-world-tuning" class="lobby-world-tuning" aria-labelledby="lobby-world-tuning-title">
+                    <header class="lobby-tuning-heading">
+                        <div>
+                            <span class="lobby-section-kicker">EQUILÍBRIO DO MUNDO</span>
+                            <strong id="lobby-world-tuning-title">Molde o território</strong>
+                        </div>
+                        <small>O gerador combina suas escolhas.</small>
+                    </header>
+
+                    <div class="lobby-tuning-grid">
+                        <label class="lobby-tuning-control lobby-tuning-control--land" for="lobby-land-input">
+                            <span class="lobby-tuning-label"><strong>Terra firme</strong><output id="lobby-land-output" for="lobby-land-input">Equilibrado</output></span>
+                            <input id="lobby-land-input" type="range" min="0" max="100" step="1" value="50" aria-describedby="lobby-land-scale">
+                            <span id="lobby-land-scale" class="lobby-tuning-scale"><span>Mais mar</span><span>Mais terra</span></span>
+                        </label>
+
+                        <label class="lobby-tuning-control lobby-tuning-control--mountains" for="lobby-mountains-input">
+                            <span class="lobby-tuning-label"><strong>Montanhas</strong><output id="lobby-mountains-output" for="lobby-mountains-input">Equilibradas</output></span>
+                            <input id="lobby-mountains-input" type="range" min="0" max="100" step="1" value="50" aria-describedby="lobby-mountains-scale">
+                            <span id="lobby-mountains-scale" class="lobby-tuning-scale"><span>Raras</span><span>Muitas</span></span>
+                        </label>
+
+                        <label class="lobby-tuning-control lobby-tuning-control--forests" for="lobby-forests-input">
+                            <span class="lobby-tuning-label"><strong>Florestas</strong><output id="lobby-forests-output" for="lobby-forests-input">Equilibradas</output></span>
+                            <input id="lobby-forests-input" type="range" min="0" max="100" step="1" value="50" aria-describedby="lobby-forests-scale">
+                            <span id="lobby-forests-scale" class="lobby-tuning-scale"><span>Esparsas</span><span>Densas</span></span>
+                        </label>
+
+                        <div class="lobby-composition" aria-label="Composição estimada do mapa">
+                            <span class="lobby-composition-title">COMPOSIÇÃO ESTIMADA</span>
+                            <div class="lobby-composition-grid">
+                                <span><i class="lobby-legend-swatch lobby-legend-swatch--water"></i>Água<strong id="lobby-water-share">29%</strong></span>
+                                <span><i class="lobby-legend-swatch lobby-legend-swatch--grass"></i>Planície<strong id="lobby-plains-share">55%</strong></span>
+                                <span><i class="lobby-legend-swatch lobby-legend-swatch--forest"></i>Floresta<strong id="lobby-forest-share">14%</strong></span>
+                                <span><i class="lobby-legend-swatch lobby-legend-swatch--mountain"></i>Montanha<strong id="lobby-mountain-share">2%</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <div class="lobby-map-legend" aria-label="Legenda do mapa">
                     <span><i class="lobby-legend-swatch lobby-legend-swatch--water"></i>Água</span>
                     <span><i class="lobby-legend-swatch lobby-legend-swatch--grass"></i>Planície</span>
@@ -81,7 +121,7 @@
                             <span class="lobby-copy-feedback">COPIAR</span>
                         </button>
                     </div>
-                    <p id="lobby-seed-hint" class="lobby-field-hint">Use a mesma seed para recriar este território.</p>
+                    <p id="lobby-seed-hint" class="lobby-field-hint">Seed + composição recriam este território.</p>
 
                     <label class="lobby-field-label" for="lobby-size-input">Tamanho do mapa</label>
                     <div class="lobby-field lobby-size-field">

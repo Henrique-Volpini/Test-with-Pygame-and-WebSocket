@@ -1,5 +1,10 @@
 import os
 
+from core.generation_settings import (
+    DEFAULT_WORLD_PARAMS,
+    calcular_percentuais_biomas,
+)
+
 
 def _ler_inteiro_ambiente(nome, padrao, minimo, maximo):
     valor = os.environ.get(nome)
@@ -29,6 +34,11 @@ class State:
             0,
             2_147_483_647,
         )
+        self.world_params = dict(DEFAULT_WORLD_PARAMS)
+        self.world_composition = calcular_percentuais_biomas(
+            self.altura_grid * self.largura_grid,
+            self.world_params,
+        )
         self.world_revision = 0
 
         # Mundo
@@ -39,6 +49,7 @@ class State:
         # nunca faz parte dos snapshots enviados aos convidados.
         self.phase = "lobby"
         self.host_token = os.environ.get("TILE_GAME_HOST_TOKEN")
+        self.room_code = os.environ.get("TILE_GAME_ROOM_CODE")
         self.host_player_id = None
         self.lobby_revision = 0
         self.world_generating = False

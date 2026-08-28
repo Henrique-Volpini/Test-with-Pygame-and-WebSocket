@@ -83,6 +83,14 @@ class FrontendStructureTests(unittest.TestCase):
             "lobby-status",
             "lobby-role",
             "lobby-map-canvas",
+            "lobby-world-tuning",
+            "lobby-land-input",
+            "lobby-mountains-input",
+            "lobby-forests-input",
+            "lobby-water-share",
+            "lobby-plains-share",
+            "lobby-forest-share",
+            "lobby-mountain-share",
             "lobby-seed-input",
             "lobby-copy-seed",
             "lobby-size-input",
@@ -131,6 +139,8 @@ class FrontendStructureTests(unittest.TestCase):
         self.assertIn("grid-template-columns: minmax(0, 1fr) 324px", lobby_css)
         self.assertIn("width: 1180px", lobby_css)
         self.assertIn("height: 850px", lobby_css)
+        self.assertIn("grid-template-rows: 58px minmax(0, 1fr) 120px 30px", lobby_css)
+        self.assertIn('.lobby-tuning-control input[type="range"]', lobby_css)
         self.assertIn('callBridge("configure_lobby"', lobby_js)
         self.assertIn('callBridge("regenerate_lobby"', lobby_js)
         self.assertIn('callBridge("start_lobby"', lobby_js)
@@ -138,6 +148,30 @@ class FrontendStructureTests(unittest.TestCase):
         self.assertIn("seedInput.readOnly = controlsLocked", lobby_js)
         self.assertIn("sizeInput.disabled = controlsLocked", lobby_js)
         self.assertIn("state.lastDrawnRevision", lobby_js)
+        self.assertIn("state.paramsDirty", lobby_js)
+        self.assertIn("values.seed, values.size, values.params", lobby_js)
+        self.assertIn("Aplique as alterações primeiro", lobby_js)
+        self.assertIn("|| state.paramsDirty", lobby_js)
+        self.assertIn("has-pending-config", lobby_js)
+        self.assertIn("has-pending-config:disabled", lobby_css)
+        self.assertIn("mapFrame.clientWidth", lobby_js)
+        self.assertIn("syncCanvasResolution", lobby_js)
+        for input_id in (
+            "lobby-land-input",
+            "lobby-mountains-input",
+            "lobby-forests-input",
+        ):
+            self.assertEqual(lobby.attributes_by_id[input_id]["type"], "range")
+            self.assertEqual(lobby.attributes_by_id[input_id]["min"], "0")
+            self.assertEqual(lobby.attributes_by_id[input_id]["max"], "100")
+
+        menu = inspect(WEB_DIR / "menu" / "menu.html")
+        self.assertEqual(menu.attributes_by_id["game-code-input"]["maxlength"], "9")
+        self.assertNotIn("readonly", menu.attributes_by_id["game-code-input"])
+        menu_js = (WEB_DIR / "menu" / "menu.js").read_text(encoding="utf-8")
+        self.assertIn("event.clipboardData", menu_js)
+        self.assertIn('event.code === "KeyV"', menu_js)
+        self.assertIn("character.charCodeAt(0) <= 0x7f", menu_js)
 
     def test_game_ui_uses_css_panels_and_keeps_the_rendering_contract(self):
         game_path = WEB_DIR / "game" / "game.html"

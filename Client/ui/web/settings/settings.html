@@ -1,0 +1,101 @@
+<section id="settings-overlay" class="settings-overlay" hidden aria-hidden="true">
+    <div class="settings-backdrop" aria-hidden="true"></div>
+
+    <article
+        id="settings-dialog"
+        class="settings-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-title"
+        aria-describedby="settings-description"
+        tabindex="-1"
+    >
+        <header class="settings-header">
+            <div class="settings-heading">
+                <span class="settings-kicker">PAINEL DO VIAJANTE</span>
+                <h1 id="settings-title">Configurações</h1>
+                <p id="settings-description">Ajuste como o reino ocupa sua tela.</p>
+            </div>
+
+            <button id="settings-close" class="settings-close" type="button" aria-label="Fechar configurações">
+                <span aria-hidden="true">×</span>
+                <small>ESC</small>
+            </button>
+        </header>
+
+        <div class="settings-divider" aria-hidden="true"><span></span></div>
+
+        <div class="settings-content">
+            <section class="settings-section settings-display" aria-labelledby="settings-display-title">
+                <header class="settings-section-heading">
+                    <span class="settings-section-emblem settings-section-emblem--display" aria-hidden="true"></span>
+                    <div>
+                        <span>EXIBIÇÃO</span>
+                        <h2 id="settings-display-title">Janela do jogo</h2>
+                    </div>
+                </header>
+
+                <label class="settings-field-label" for="settings-resolution">Resolução</label>
+                <div class="settings-select-wrap">
+                    <select id="settings-resolution" aria-describedby="settings-resolution-hint">
+                        <option value="960x720">960 × 720 · Compacta</option>
+                        <option value="1280x720">1280 × 720 · Panorâmica</option>
+                        <option value="1280x960" selected>1280 × 960 · Padrão</option>
+                        <option value="1600x900">1600 × 900 · Ampla</option>
+                    </select>
+                    <span aria-hidden="true"></span>
+                </div>
+                <p id="settings-resolution-hint" class="settings-field-hint">Resoluções maiores ficam disponíveis quando couberem no monitor.</p>
+
+                <fieldset class="settings-mode-group">
+                    <legend>Modo de exibição</legend>
+
+                    <label class="settings-mode-option" for="settings-windowed">
+                        <input id="settings-windowed" type="radio" name="settings-display-mode" value="windowed" checked>
+                        <span class="settings-radio-mark" aria-hidden="true"></span>
+                        <span><strong>Janela</strong><small>Use o tamanho escolhido</small></span>
+                    </label>
+
+                    <label class="settings-mode-option" for="settings-fullscreen">
+                        <input id="settings-fullscreen" type="radio" name="settings-display-mode" value="fullscreen">
+                        <span class="settings-radio-mark" aria-hidden="true"></span>
+                        <span><strong>Tela cheia</strong><small>Ocupar todo o monitor</small></span>
+                    </label>
+                </fieldset>
+            </section>
+
+            <fieldset id="settings-audio" class="settings-section settings-audio" aria-labelledby="settings-audio-title" aria-disabled="true" disabled>
+                <header class="settings-section-heading">
+                    <span class="settings-section-emblem settings-section-emblem--audio" aria-hidden="true"></span>
+                    <div>
+                        <span>SOM DO REINO</span>
+                        <h2 id="settings-audio-title">Áudio</h2>
+                    </div>
+                    <strong class="settings-coming-soon">EM BREVE</strong>
+                </header>
+
+                <div class="settings-audio-preview" aria-hidden="true">
+                    <span class="settings-speaker-icon"><i></i></span>
+                    <span class="settings-audio-track"><i></i></span>
+                </div>
+                <p>Os controles de música, efeitos e volume serão adicionados aqui futuramente.</p>
+            </fieldset>
+        </div>
+
+        <footer class="settings-footer">
+            <p id="settings-status" class="settings-status" aria-live="polite" aria-atomic="true"></p>
+
+            <div class="settings-actions">
+                <button id="settings-exit" class="settings-action-button settings-action-button--exit" type="button">
+                    <span class="settings-button-symbol" aria-hidden="true">×</span>
+                    <span><strong>Sair do jogo</strong><small>Voltar para a área de trabalho</small></span>
+                </button>
+
+                <button id="settings-apply" class="settings-action-button settings-action-button--apply" type="button">
+                    <span class="settings-button-symbol" aria-hidden="true">✓</span>
+                    <span><strong>Aplicar</strong><small>Confirmar exibição</small></span>
+                </button>
+            </div>
+        </footer>
+    </article>
+</section>

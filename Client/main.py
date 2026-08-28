@@ -2,6 +2,7 @@ from pathlib import Path
 
 import webview
 
+from core.window_settings import DEFAULT_WINDOW_RESOLUTION
 from ui.api import GameApi
 
 
@@ -11,12 +12,13 @@ WEB_ENTRYPOINT = CLIENT_DIR / "index.html"
 
 def main():
     api = GameApi()
+    window_width, window_height = DEFAULT_WINDOW_RESOLUTION
     window = webview.create_window(
         "Tile Game",
         url=str(WEB_ENTRYPOINT),
         js_api=api,
-        width=1280,
-        height=960,
+        width=window_width,
+        height=window_height,
         resizable=False,
         background_color="#000000",
         text_select=False,

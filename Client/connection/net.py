@@ -9,6 +9,7 @@ from connection.transport import parar as _parar_transport
 
 
 PERMANENT_CONNECTION_ERRORS = {
+    "invalid_room_code": "O código não pertence à sala que está aberta neste endereço.",
     "game_already_started": "A partida já começou e não aceita novos jogadores.",
     "host_already_connected": "O anfitrião já está conectado por outra sessão.",
     "invalid_host_session": "A credencial do anfitrião não é válida.",
@@ -16,10 +17,12 @@ PERMANENT_CONNECTION_ERRORS = {
 }
 
 
-def iniciar(uri=None, host_token=None):
+def iniciar(uri=None, host_token=None, room_code=None):
     headers = {"X-Tile-Game-Player": secrets.token_urlsafe(32)}
     if host_token:
         headers["X-Tile-Game-Host"] = host_token
+    if room_code:
+        headers["X-Tile-Game-Room"] = str(room_code).strip().upper()
     _iniciar_transport(
         uri or state.ws_url,
         receber,

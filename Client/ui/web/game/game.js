@@ -60,6 +60,7 @@ export function createGame({callBridge, viewport}) {
         zoom: 1,
         selectedTile: null,
         buildOpen: false,
+        interactionLocked: false,
         heldKeys: new Set(),
     };
 
@@ -227,6 +228,14 @@ export function createGame({callBridge, viewport}) {
         setBuildVisibility();
     }
 
+    function setInteractionLocked(locked) {
+        state.interactionLocked = Boolean(locked);
+        if (state.interactionLocked) {
+            state.heldKeys.clear();
+            hideBuildInfo();
+        }
+    }
+
     function updateResourceHud() {
         byId("gold-value").textContent = String(state.resources.gold);
         byId("wood-value").textContent = String(state.resources.wood);
@@ -269,7 +278,7 @@ export function createGame({callBridge, viewport}) {
     }
 
     async function buildTile(tile) {
-        if (!state.selectedTile) {
+        if (state.interactionLocked || !state.selectedTile) {
             return;
         }
         await callBridge(
@@ -428,7 +437,7 @@ export function createGame({callBridge, viewport}) {
     }
 
     listen(canvas, "pointerdown", (event) => {
-        if (event.button !== 0 || !state.visible) {
+        if (event.button !== 0 || !state.visible || state.interactionLocked) {
             return;
         }
 
@@ -440,7 +449,7 @@ export function createGame({callBridge, viewport}) {
     });
 
     listen(gameScreen, "wheel", (event) => {
-        if (!state.visible || event.deltaY === 0) {
+        if (!state.visible || state.interactionLocked || event.deltaY === 0) {
             return;
         }
 
@@ -483,6 +492,10 @@ export function createGame({callBridge, viewport}) {
         ) {
             event.preventDefault();
             hideBuildInfo();
+            return;
+        }
+
+        if (state.interactionLocked) {
             return;
         }
 
@@ -540,7 +553,9 @@ export function createGame({callBridge, viewport}) {
         previousFrameTime = time;
 
         if (state.visible) {
-            updateCamera(deltaSeconds);
+            if (!state.interactionLocked) {
+                updateCamera(deltaSeconds);
+            }
             drawWorld();
         }
 
@@ -551,6 +566,7 @@ export function createGame({callBridge, viewport}) {
     return {
         applySnapshot,
         setVisible,
+        setInteractionLocked,
         dispose() {
             hideBuildInfo();
             if (animationFrameId !== null) {

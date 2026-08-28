@@ -1,6 +1,7 @@
 import {createGame} from "./game/game.js";
 import {createLobby} from "./lobby/lobby.js";
 import {createMenu} from "./menu/menu.js";
+import {createSettings} from "./settings/settings.js";
 import {createBridge} from "./shared/bridge.js";
 import {byId, initializeViewport} from "./shared/runtime.js";
 
@@ -37,13 +38,16 @@ function normalizeRemoteScreen(screen) {
 
 async function bootstrap() {
     const viewport = byId("viewport");
-    const [menuMarkup, lobbyMarkup, gameMarkup] = await Promise.all([
+    const [menuMarkup, lobbyMarkup, gameMarkup, settingsMarkup] = await Promise.all([
         loadFragment("./menu/menu.html"),
         loadFragment("./lobby/lobby.html"),
         loadFragment("./game/game.html"),
+        loadFragment("./settings/settings.html"),
     ]);
 
-    viewport.innerHTML = `${menuMarkup}\n${lobbyMarkup}\n${gameMarkup}`;
+    viewport.innerHTML = (
+        `${menuMarkup}\n${lobbyMarkup}\n${gameMarkup}\n${settingsMarkup}`
+    );
 
     const disposeViewport = initializeViewport(viewport);
     const game = createGame({
@@ -59,18 +63,31 @@ async function bootstrap() {
     let disposed = false;
     let menu = null;
     let lobby = null;
+    let settings = null;
 
     function setView(view) {
         if (!APP_VIEWS.has(view) || !menu) {
             return;
         }
 
+        const viewChanged = currentView !== view;
         currentView = view;
         menu.show(view);
         lobby.show(view);
         game.setVisible(view === "game");
+        if (settings) {
+            if (viewChanged && settings.isOpen) {
+                settings.close({restoreFocus: false});
+            }
+            settings.setContext(view);
+        }
     }
 
+    settings = createSettings({
+        callBridge: bridge.call,
+        getCurrentView: () => currentView,
+        onVisibilityChange: (visible) => game.setInteractionLocked(visible),
+    });
     lobby = createLobby({
         callBridge: bridge.call,
         requestView: setView,
@@ -78,6 +95,8 @@ async function bootstrap() {
     menu = createMenu({
         callBridge: bridge.call,
         requestView: setView,
+        openSettings: (trigger) => settings.open(trigger),
+        toggleFullscreen: () => settings.toggleFullscreen(),
     });
     setView("main");
 
@@ -156,6 +175,7 @@ async function bootstrap() {
             snapshotTimer = null;
         }
         stopWatchingBridge();
+        settings.dispose();
         menu.dispose();
         lobby.dispose();
         game.dispose();

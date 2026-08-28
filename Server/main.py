@@ -17,6 +17,7 @@ async def lifespan(app: FastAPI):
             state.largura_grid,
             state.altura_grid,
             state.world_seed,
+            state.world_params,
         )
         world.publicar_mundo(
             matriz,
@@ -24,6 +25,7 @@ async def lifespan(app: FastAPI):
             state.largura_grid,
             state.altura_grid,
             state.world_seed,
+            state.world_params,
         )
 
     task = asyncio.create_task(tick_loop())

@@ -64,6 +64,8 @@ def build_lobby_update(player_id, include_matrix=True):
         "seed": state.world_seed,
         "largura": state.largura_grid,
         "altura": state.altura_grid,
+        "parametros_mapa": dict(state.world_params),
+        "composicao_mapa": dict(state.world_composition),
         "gerando": state.world_generating,
         "erro": state.world_error,
         "status": status,
@@ -118,6 +120,9 @@ async def process_lobby_action(data, player_id, broadcast):
             if action == "regenerar_lobby"
             else _validar_seed(data.get("seed"))
         )
+        parametros = world.validar_parametros_mapa(
+            data.get("parametros_mapa", state.world_params)
+        )
     except ValueError as exc:
         return _erro(action, "invalid_config", str(exc)), None
 
@@ -132,10 +137,18 @@ async def process_lobby_action(data, player_id, broadcast):
             tamanho,
             tamanho,
             seed,
+            parametros,
         )
         if state.phase != "lobby":
             return _erro(action, "not_in_lobby", "A partida já foi iniciada."), None
-        world.publicar_mundo(matriz, matriz_dict, tamanho, tamanho, seed)
+        world.publicar_mundo(
+            matriz,
+            matriz_dict,
+            tamanho,
+            tamanho,
+            seed,
+            parametros,
+        )
     except Exception as exc:
         state.world_error = f"Não foi possível gerar o mapa: {exc}"
     finally:

@@ -18,6 +18,8 @@ from connections.services.lobby_runtime import (
 MAX_OUTGOING_MESSAGES = 4
 PLAYER_SESSION_HEADER = "x-tile-game-player"
 HOST_TOKEN_HEADER = "x-tile-game-host"
+ROOM_CODE_HEADER = "x-tile-game-room"
+MAX_ROOM_CODE_LENGTH = 9
 SNAPSHOT_MESSAGE_TYPES = frozenset({"lobby_estado", "resposta", "update"})
 
 
@@ -159,10 +161,49 @@ def _player_session(websocket):
     return value if 16 <= len(value) <= 256 else None
 
 
+def _secure_header_equals(value, expected, *, normalize=False):
+    if not isinstance(value, str) or not isinstance(expected, str):
+        return False
+    if not value.isascii() or not expected.isascii():
+        return False
+    if normalize:
+        value = value.strip().upper()
+        expected = expected.strip().upper()
+    return hmac.compare_digest(value, expected)
+
+
+def _normalize_room_code(value):
+    if not isinstance(value, str) or not value.isascii():
+        return None
+    value = value.strip().upper()
+    if (
+        not value
+        or len(value) > MAX_ROOM_CODE_LENGTH
+        or not value.isalnum()
+    ):
+        return None
+    return value
+
+
+def _is_valid_room_connection(websocket):
+    if not state.room_code:
+        return True
+    provided_code = _normalize_room_code(
+        websocket.headers.get(ROOM_CODE_HEADER)
+    )
+    expected_code = _normalize_room_code(state.room_code)
+    if provided_code is None or expected_code is None:
+        return False
+    return _secure_header_equals(
+        provided_code,
+        expected_code,
+    )
+
+
 def _is_host_connection(websocket, existing_player_id=None):
     provided_token = websocket.headers.get(HOST_TOKEN_HEADER)
     if state.host_token:
-        return bool(provided_token) and hmac.compare_digest(
+        return _secure_header_equals(
             provided_token,
             state.host_token,
         )
@@ -252,6 +293,16 @@ def _connection_identity(websocket):
 
 async def websocket_handler(websocket: WebSocket):
     await websocket.accept()
+    if not _is_valid_room_connection(websocket):
+        error = {
+            "tipo": "erro",
+            "codigo": "invalid_room_code",
+            "mensagem": "O codigo informado nao pertence a esta sala.",
+        }
+        await websocket.send_json(error)
+        await _close_connection(websocket, 1008, error["codigo"])
+        return
+
     identity, identity_error = _connection_identity(websocket)
     if identity_error is not None:
         await websocket.send_json(identity_error)

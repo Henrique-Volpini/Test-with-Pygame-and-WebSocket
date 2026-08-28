@@ -112,6 +112,7 @@ def iniciar(tamanho_mundo=None, seed=None, game_code=""):
                 if seed is not None:
                     ambiente_servidor["TILE_GAME_WORLD_SEED"] = str(seed)
                 ambiente_servidor["TILE_GAME_HOST_TOKEN"] = host_token
+                ambiente_servidor["TILE_GAME_ROOM_CODE"] = game_code
                 _process = subprocess.Popen(
                     [sys.executable, str(SERVER_DIR / "main.py")],
                     cwd=SERVER_DIR,
@@ -128,7 +129,11 @@ def iniciar(tamanho_mundo=None, seed=None, game_code=""):
             print(erro)
             return False
 
-    net.iniciar(LOCAL_WS_URL, host_token=host_token)
+    net.iniciar(
+        LOCAL_WS_URL,
+        host_token=host_token,
+        room_code=game_code,
+    )
     return True
 
 

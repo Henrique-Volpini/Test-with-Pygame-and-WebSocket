@@ -194,6 +194,11 @@
     --button-accent-bright: #efbf65;
 }
 
+.menu-settings-button {
+    --button-accent: #567b87;
+    --button-accent-bright: #8bc3ce;
+}
+
 .exit-button {
     --button-accent: #8f493d;
     --button-accent-bright: #d77a68;

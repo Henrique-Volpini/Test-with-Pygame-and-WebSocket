@@ -1,5 +1,11 @@
 from threading import RLock
 
+from core.generation_settings import (
+    DEFAULT_WORLD_PARAMS,
+    calcular_percentuais_biomas,
+)
+from core.window_settings import DEFAULT_WINDOW_RESOLUTION
+
 
 class GameState:
     """Estado compartilhado entre a rede e a ponte da interface web."""
@@ -21,6 +27,10 @@ class GameState:
         self.lobby_world_revision = -1
         self.lobby_seed = 0
         self.lobby_size = 0
+        self.lobby_map_params = dict(DEFAULT_WORLD_PARAMS)
+        self.lobby_map_composition = calcular_percentuais_biomas(
+            self.lobby_map_params
+        )
         self.lobby_players = []
         self.lobby_is_host = False
         self.lobby_code = ""
@@ -40,6 +50,7 @@ class GameState:
 
         # Janela
         self.tela_cheia_ativa = False
+        self.window_width, self.window_height = DEFAULT_WINDOW_RESOLUTION
 
         # Rede
         self.ws_url = "ws://127.0.0.1:8765/ws"
@@ -64,6 +75,10 @@ class GameState:
             self.lobby_world_revision = -1
             self.lobby_seed = 0
             self.lobby_size = 0
+            self.lobby_map_params = dict(DEFAULT_WORLD_PARAMS)
+            self.lobby_map_composition = calcular_percentuais_biomas(
+                self.lobby_map_params
+            )
             self.lobby_players = []
             self.lobby_is_host = False
             self.lobby_code = lobby_code
@@ -108,6 +123,10 @@ class GameState:
             self.lobby_world_revision = -1
             self.lobby_seed = 0
             self.lobby_size = 0
+            self.lobby_map_params = dict(DEFAULT_WORLD_PARAMS)
+            self.lobby_map_composition = calcular_percentuais_biomas(
+                self.lobby_map_params
+            )
             self.lobby_players = []
             self.lobby_is_host = False
             self.lobby_code = ""

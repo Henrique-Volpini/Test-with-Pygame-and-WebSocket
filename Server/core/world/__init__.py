@@ -2,12 +2,17 @@ import hashlib
 import secrets
 
 from core.state import state
+from core.generation_settings import (
+    DEFAULT_WORLD_PARAMS,
+    calcular_contagens_biomas,
+    calcular_percentuais_biomas,
+    validar_parametros_mapa,
+)
 
 from .config import TREE_NOISE_PASSES
+from .biomes import compor_biomas
 from .noise import criar_noise
 from .serializer import transformar_matriz_em_dict
-from .terrain import transformar_noise_em_tiles
-from .vegetation import transformar_noise_em_trees
 
 
 MIN_WORLD_SIZE = 1
@@ -28,7 +33,7 @@ def _derivar_seed(seed, namespace):
     return int.from_bytes(digest[:8], "big") % MAX_WORLD_SEED + 1
 
 
-def validar_configuracao(largura, altura, seed):
+def validar_configuracao(largura, altura, seed, parametros=None):
     if (
         isinstance(largura, bool)
         or isinstance(altura, bool)
@@ -44,44 +49,56 @@ def validar_configuracao(largura, altura, seed):
         or not MIN_WORLD_SEED <= seed <= MAX_WORLD_SEED
     ):
         raise ValueError("A seed deve estar entre 0 e 2147483647.")
+    return validar_parametros_mapa(parametros)
 
 
-def gerar_mundo(largura, altura, seed):
+def gerar_mundo(largura, altura, seed, parametros=None):
     """Gera um mundo puro e reproduzivel, sem publicar estado parcial."""
-    validar_configuracao(largura, altura, seed)
+    parametros = validar_configuracao(largura, altura, seed, parametros)
 
     terrain_noise = criar_noise(
         seed=_derivar_seed(seed, "terrain"),
         largura=largura,
         altura=altura,
+        continuo=True,
     )
-    matriz = transformar_noise_em_tiles(terrain_noise)
-
+    forest_noises = []
     for index in range(TREE_NOISE_PASSES):
-        tree_noise = criar_noise(
-            seed=_derivar_seed(seed, f"tree:{index}"),
-            largura=largura,
-            altura=altura,
+        forest_noises.append(
+            criar_noise(
+                seed=_derivar_seed(seed, f"tree:{index}"),
+                largura=largura,
+                altura=altura,
+                continuo=True,
+            )
         )
-        matriz = transformar_noise_em_trees(tree_noise, matriz)
+
+    counts = calcular_contagens_biomas(largura * altura, parametros)
+    matriz = compor_biomas(terrain_noise, forest_noises, counts)
 
     return matriz, transformar_matriz_em_dict(matriz)
 
 
-def publicar_mundo(matriz, matriz_dict, largura, altura, seed):
-    validar_configuracao(largura, altura, seed)
+def publicar_mundo(matriz, matriz_dict, largura, altura, seed, parametros=None):
+    parametros = validar_configuracao(largura, altura, seed, parametros)
     state.matriz = matriz
     state.matriz_dict = matriz_dict
     state.largura_grid = largura
     state.altura_grid = altura
     state.world_seed = seed
+    state.world_params = parametros
+    state.world_composition = calcular_percentuais_biomas(
+        largura * altura,
+        parametros,
+    )
     state.world_revision += 1
 
 
-def criar_matriz(seed=None, largura=None, altura=None):
+def criar_matriz(seed=None, largura=None, altura=None, parametros=None):
     seed = nova_seed() if seed is None else seed
     largura = state.largura_grid if largura is None else largura
     altura = state.altura_grid if altura is None else altura
-    matriz, matriz_dict = gerar_mundo(largura, altura, seed)
-    publicar_mundo(matriz, matriz_dict, largura, altura, seed)
+    parametros = state.world_params if parametros is None else parametros
+    matriz, matriz_dict = gerar_mundo(largura, altura, seed, parametros)
+    publicar_mundo(matriz, matriz_dict, largura, altura, seed, parametros)
     return state.matriz_dict

@@ -1,4 +1,8 @@
 import core.world as world
+from core.generation_settings import (
+    calcular_percentuais_biomas,
+    validar_parametros_mapa,
+)
 from core.player import Player
 from core.state import state
 
@@ -82,6 +86,18 @@ def _aplicar_lobby(data):
     altura = data.get("altura")
     revision = data.get("revisao")
     world_revision = data.get("world_revision")
+    try:
+        parametros_mapa = validar_parametros_mapa(data.get("parametros_mapa"))
+    except ValueError:
+        return False
+    composicao_mapa = data.get("composicao_mapa")
+    if not isinstance(composicao_mapa, dict) or not all(
+        isinstance(composicao_mapa.get(key), (int, float))
+        and not isinstance(composicao_mapa.get(key), bool)
+        and 0 <= composicao_mapa.get(key) <= 100
+        for key in ("water", "plains", "mountains", "forests")
+    ):
+        composicao_mapa = calcular_percentuais_biomas(parametros_mapa)
     if (
         isinstance(seed, bool)
         or not isinstance(seed, int)
@@ -114,6 +130,11 @@ def _aplicar_lobby(data):
         state.lobby_world_revision = world_revision
         state.lobby_seed = seed
         state.lobby_size = largura
+        state.lobby_map_params = parametros_mapa
+        state.lobby_map_composition = {
+            key: composicao_mapa[key]
+            for key in ("water", "plains", "mountains", "forests")
+        }
         state.lobby_players = jogadores
         state.lobby_is_host = bool(data.get("is_host"))
         state.lobby_generating = bool(data.get("gerando"))

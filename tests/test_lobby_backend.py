@@ -33,15 +33,102 @@ def run_isolated(directory, source):
 
 
 class LobbyBackendTests(unittest.TestCase):
+    def test_room_and_host_headers_reject_non_ascii_without_crashing(self):
+        run_isolated(
+            SERVER_DIR,
+            """
+            from connections.transport import websocket_manager
+            from core.state import state
+
+            class FakeWebSocket:
+                def __init__(self, headers):
+                    self.headers = headers
+
+            previous_room = state.room_code
+            previous_host = state.host_token
+            try:
+                state.room_code = "ROOM9CODE"
+                state.host_token = "host-token"
+                malformed = FakeWebSocket({
+                    websocket_manager.ROOM_CODE_HEADER: "R\u00d4OM9CODE",
+                    websocket_manager.HOST_TOKEN_HEADER: "host-tok\u00e9n",
+                })
+                assert not websocket_manager._is_valid_room_connection(malformed)
+                assert not websocket_manager._is_host_connection(malformed)
+                assert not websocket_manager._secure_header_equals(
+                    "\u00df", "SS", normalize=True
+                )
+                for invalid_code in (
+                    "ROOM-CODE",
+                    "ROOM_CODE",
+                    "ABCDEFGHIJ",
+                    "\u017f",
+                ):
+                    malformed.headers[websocket_manager.ROOM_CODE_HEADER] = invalid_code
+                    assert not websocket_manager._is_valid_room_connection(malformed)
+            finally:
+                state.room_code = previous_room
+                state.host_token = previous_host
+            """,
+        )
+
+    def test_room_codes_change_round_trip_and_keep_legacy_compatibility(self):
+        run_isolated(
+            CLIENT_DIR,
+            """
+            from unittest.mock import patch
+
+            from connection import lan_code
+            from core import session
+
+            ip = "26.204.139.78"
+            legacy = lan_code.ip_para_codigo(ip)
+            with patch(
+                "connection.lan_code.secrets.randbelow",
+                side_effect=[0, 0, 1],
+            ):
+                first = lan_code.criar_codigo_sala(ip)
+                second = lan_code.criar_codigo_sala(ip)
+
+            assert legacy == "7FORBI"
+            assert len(first) == len(second) == lan_code.MAX_CODE_LENGTH == 9
+            assert first != second
+            assert lan_code.codigo_para_ip(first) == ip
+            assert lan_code.codigo_para_ip(second) == ip
+            assert lan_code.codigo_para_ip(legacy) == ip
+
+            for invalid in (
+                "",
+                "ABCDEFGHIJ",
+                "ABC-123",
+                "+123",
+                "\u017f",
+                "\u00df",
+            ):
+                try:
+                    lan_code.codigo_para_ip(invalid)
+                except ValueError:
+                    pass
+                else:
+                    raise AssertionError(f"Codigo invalido aceito: {invalid}")
+            assert session.conectar("\u017f") == {"ok": False}
+            assert session.conectar("\u00df") == {"ok": False}
+            """,
+        )
+
     def test_world_seed_is_deterministic_and_dimensions_are_explicit(self):
         run_isolated(
             SERVER_DIR,
             """
-            import core.world as world
+            from collections import Counter
 
-            first_objects, first = world.gerar_mundo(13, 9, 0)
-            second_objects, second = world.gerar_mundo(13, 9, 0)
-            _, different = world.gerar_mundo(13, 9, 1)
+            import core.world as world
+            from core.generation_settings import calcular_contagens_biomas
+
+            defaults = {"land": 50, "mountains": 50, "forests": 50}
+            first_objects, first = world.gerar_mundo(13, 9, 0, defaults)
+            second_objects, second = world.gerar_mundo(13, 9, 0, defaults)
+            _, different = world.gerar_mundo(13, 9, 1, defaults)
 
             assert first == second
             assert first != different
@@ -49,6 +136,54 @@ class LobbyBackendTests(unittest.TestCase):
             assert len(first_objects[0]) == 13
             assert len(first) == 9
             assert len(first[0]) == 13
+
+            def composition(wire):
+                raw = Counter(cell["tile"] for row in wire for cell in row)
+                return {
+                    "water": raw["water"],
+                    "plains": raw["grass"],
+                    "mountains": raw["mountain"],
+                    "forests": sum(
+                        raw[name]
+                        for name in (
+                            "small_forest",
+                            "medium_forest",
+                            "big_forest",
+                        )
+                    ),
+                }
+
+            cases = {
+                "sea": {"land": 0, "mountains": 50, "forests": 50},
+                "land": {"land": 100, "mountains": 50, "forests": 50},
+                "mountains": {"land": 50, "mountains": 100, "forests": 50},
+                "forests": {"land": 50, "mountains": 50, "forests": 100},
+            }
+            generated = {}
+            for name, params in cases.items():
+                _, wire = world.gerar_mundo(30, 20, 42, params)
+                generated[name] = composition(wire)
+                assert generated[name] == calcular_contagens_biomas(600, params)
+
+            for total in range(1, 101):
+                percentages = world.calcular_percentuais_biomas(total, defaults)
+                assert round(sum(percentages.values()), 1) == 100.0
+
+            assert generated["sea"]["water"] > generated["land"]["water"]
+            assert generated["mountains"]["mountains"] > generated["sea"]["mountains"]
+            assert generated["forests"]["forests"] > generated["sea"]["forests"]
+
+            try:
+                world.gerar_mundo(
+                    10,
+                    10,
+                    1,
+                    {"land": True, "mountains": 50, "forests": 50},
+                )
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("Parametro booleano foi aceito.")
             """,
         )
 
@@ -90,7 +225,16 @@ class LobbyBackendTests(unittest.TestCase):
                 original_wire = state.matriz_dict
                 original_revision = state.world_revision
                 response, phase = await process_lobby_action(
-                    {"tipo": "configurar_lobby", "seed": 99, "tamanho": 8},
+                    {
+                        "tipo": "configurar_lobby",
+                        "seed": 99,
+                        "tamanho": 8,
+                        "parametros_mapa": {
+                            "land": 90,
+                            "mountains": 10,
+                            "forests": 80,
+                        },
+                    },
                     "guest",
                     broadcast,
                 )
@@ -115,7 +259,16 @@ class LobbyBackendTests(unittest.TestCase):
                 assert phase is None
 
                 response, phase = await process_lobby_action(
-                    {"tipo": "configurar_lobby", "seed": 99, "tamanho": 8},
+                    {
+                        "tipo": "configurar_lobby",
+                        "seed": 99,
+                        "tamanho": 8,
+                        "parametros_mapa": {
+                            "land": 90,
+                            "mountains": 10,
+                            "forests": 80,
+                        },
+                    },
                     "host",
                     broadcast,
                 )
@@ -123,6 +276,11 @@ class LobbyBackendTests(unittest.TestCase):
                 assert phase == "lobby"
                 assert state.world_seed == 99
                 assert state.largura_grid == state.altura_grid == 8
+                assert state.world_params == {
+                    "land": 90,
+                    "mountains": 10,
+                    "forests": 80,
+                }
                 assert state.world_revision > original_revision
                 preview_before_start = state.matriz_dict
 
@@ -143,6 +301,7 @@ class LobbyBackendTests(unittest.TestCase):
             guest_snapshot = build_lobby_update("guest")
             assert host_snapshot["is_host"] is True
             assert guest_snapshot["is_host"] is False
+            assert host_snapshot["parametros_mapa"] == guest_snapshot["parametros_mapa"]
             assert "never-publish-this-token" not in repr(host_snapshot)
             assert "never-publish-this-token" not in repr(guest_snapshot)
             """,
@@ -272,6 +431,7 @@ class LobbyBackendTests(unittest.TestCase):
                 "TILE_GAME_WORLD_SIZE": "8",
                 "TILE_GAME_WORLD_SEED": "321",
                 "TILE_GAME_HOST_TOKEN": "integration-host-secret",
+                "TILE_GAME_ROOM_CODE": "ROOM9CODE",
             }
         )
         process = subprocess.Popen(
@@ -331,6 +491,7 @@ class LobbyBackendTests(unittest.TestCase):
                 host_options[header_parameter] = {
                     "X-Tile-Game-Host": "integration-host-secret",
                     "X-Tile-Game-Player": "integration-host-player-session",
+                    "X-Tile-Game-Room": "ROOM9CODE",
                 }
                 async with websockets.connect(base_url, **host_options) as host:
                     host_welcome = await receive(host)
@@ -341,10 +502,23 @@ class LobbyBackendTests(unittest.TestCase):
                     self.assertEqual(len(host_lobby["jogadores"]), 1)
                     self.assertIsNotNone(host_lobby["matriz"])
 
+                    wrong_room_options = {"max_size": 16 * 1024 * 1024}
+                    wrong_room_options[header_parameter] = {
+                        "X-Tile-Game-Player": "wrong-room-player-session",
+                        "X-Tile-Game-Room": "WRONGROOM",
+                    }
+                    async with websockets.connect(
+                        base_url,
+                        **wrong_room_options,
+                    ) as wrong_room:
+                        room_error = await receive(wrong_room)
+                        self.assertEqual(room_error["codigo"], "invalid_room_code")
+
                     duplicate_options = {"max_size": 16 * 1024 * 1024}
                     duplicate_options[header_parameter] = {
                         "X-Tile-Game-Host": "integration-host-secret",
                         "X-Tile-Game-Player": "different-host-player-session",
+                        "X-Tile-Game-Room": "ROOM9CODE",
                     }
                     async with websockets.connect(
                         base_url,
@@ -359,6 +533,7 @@ class LobbyBackendTests(unittest.TestCase):
                     guest_options = {"max_size": 16 * 1024 * 1024}
                     guest_options[header_parameter] = {
                         "X-Tile-Game-Player": "integration-guest-player-session",
+                        "X-Tile-Game-Room": "ROOM9CODE",
                     }
                     guest_player_id = None
                     async with websockets.connect(base_url, **guest_options) as guest:
@@ -381,6 +556,11 @@ class LobbyBackendTests(unittest.TestCase):
                                     "tipo": "configurar_lobby",
                                     "seed": 777,
                                     "tamanho": 9,
+                                    "parametros_mapa": {
+                                        "land": 75,
+                                        "mountains": 80,
+                                        "forests": 25,
+                                    },
                                 }
                             )
                         )
@@ -393,6 +573,18 @@ class LobbyBackendTests(unittest.TestCase):
                         self.assertFalse(host_generated["gerando"])
                         self.assertEqual(host_generated["seed"], 777)
                         self.assertEqual(guest_generated["seed"], 777)
+                        self.assertEqual(
+                            host_generated["parametros_mapa"],
+                            {
+                                "land": 75,
+                                "mountains": 80,
+                                "forests": 25,
+                            },
+                        )
+                        self.assertEqual(
+                            host_generated["composicao_mapa"],
+                            guest_generated["composicao_mapa"],
+                        )
                         self.assertEqual(
                             host_generated["matriz"],
                             guest_generated["matriz"],
@@ -443,6 +635,7 @@ class LobbyBackendTests(unittest.TestCase):
                     late_join_options = {"max_size": 16 * 1024 * 1024}
                     late_join_options[header_parameter] = {
                         "X-Tile-Game-Player": "late-guest-player-session",
+                        "X-Tile-Game-Room": "ROOM9CODE",
                     }
                     async with websockets.connect(
                         base_url,

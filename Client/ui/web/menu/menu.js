@@ -3,7 +3,12 @@ import {bindPrimaryAction, byId} from "../shared/runtime.js";
 const MENU_VIEWS = new Set(["main", "host", "connect", "lobby", "game"]);
 const DEFAULT_WORLD_SIZE = 90;
 
-export function createMenu({callBridge, requestView}) {
+export function createMenu({
+    callBridge,
+    requestView,
+    openSettings,
+    toggleFullscreen,
+}) {
     const menuScreen = byId("menu-screen");
     const mainMenu = byId("main-menu");
     const hostMenu = byId("host-menu");
@@ -27,6 +32,15 @@ export function createMenu({callBridge, requestView}) {
         const input = byId(inputId);
         const display = byId(displayId);
 
+        function sanitize(value) {
+            return [...String(value || "")]
+                .filter((character) => character.charCodeAt(0) <= 0x7f)
+                .map((character) => character.toUpperCase())
+                .filter((character) => allowedCharacter.test(character))
+                .join("")
+                .slice(0, limit);
+        }
+
         function refresh() {
             if (document.activeElement === input) {
                 display.textContent = `${input.value}|`;
@@ -47,15 +61,27 @@ export function createMenu({callBridge, requestView}) {
 
         listen(input, "focus", refresh);
         listen(input, "blur", refresh);
+        listen(input, "input", () => {
+            input.value = sanitize(input.value);
+            refresh();
+        });
         listen(input, "pointerdown", (event) => {
             if (event.button !== 0) {
                 event.preventDefault();
             }
         });
-        listen(input, "paste", (event) => event.preventDefault());
+        listen(input, "paste", (event) => {
+            event.preventDefault();
+            const pasted = String(event.clipboardData?.getData("text") || "");
+            input.value = sanitize(pasted);
+            refresh();
+        });
         listen(input, "drop", (event) => event.preventDefault());
         listen(input, "keydown", (event) => {
             if (event.code === "F11") {
+                return;
+            }
+            if ((event.ctrlKey || event.metaKey) && event.code === "KeyV") {
                 return;
             }
 
@@ -94,7 +120,11 @@ export function createMenu({callBridge, requestView}) {
             }
 
             const character = event.key.toUpperCase();
-            if (allowedCharacter.test(character) && input.value.length < limit) {
+            if (
+                event.key.charCodeAt(0) <= 0x7f
+                && allowedCharacter.test(character)
+                && input.value.length < limit
+            ) {
                 input.value += character;
                 refresh();
             }
@@ -145,12 +175,19 @@ export function createMenu({callBridge, requestView}) {
         requestView("main");
     }
 
+    async function toggleDisplayMode() {
+        if (typeof toggleFullscreen === "function") {
+            return toggleFullscreen();
+        }
+        return callBridge("toggle_fullscreen");
+    }
+
     const gameCodeField = createTextField(
         "game-code-input",
         "game-code-display",
         "CÓDIGO",
         /^[0-9A-Z]$/,
-        7,
+        9,
         {
             confirm: (value) => void connectGame(value),
             cancel: () => void leaveToMain(),
@@ -186,19 +223,11 @@ export function createMenu({callBridge, requestView}) {
     });
 
     listen(document, "keydown", (event) => {
-        if (event.code === "F11") {
-            event.preventDefault();
-            if (!event.repeat) {
-                void callBridge("toggle_fullscreen");
-            }
-            return;
-        }
-
         const noModifiers = !event.ctrlKey && !event.metaKey && !event.altKey;
         if (activeView === "main" && event.code === "KeyF" && noModifiers) {
             event.preventDefault();
             if (!event.repeat) {
-                void callBridge("toggle_fullscreen");
+                void toggleDisplayMode();
             }
         }
     });
@@ -215,12 +244,18 @@ export function createMenu({callBridge, requestView}) {
         window.requestAnimationFrame(() => gameCodeField.focus());
     }));
 
+    disposers.push(bindPrimaryAction(byId("settings-button"), () => {
+        if (typeof openSettings === "function") {
+            void openSettings(byId("settings-button"));
+        }
+    }));
+
     disposers.push(bindPrimaryAction(byId("exit-button"), () => {
         void callBridge("close_window");
     }));
 
     disposers.push(bindPrimaryAction(byId("fullscreen-button"), () => {
-        void callBridge("toggle_fullscreen");
+        void toggleDisplayMode();
     }));
 
     disposers.push(bindPrimaryAction(byId("join-game-button"), () => {

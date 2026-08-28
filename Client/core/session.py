@@ -1,6 +1,7 @@
 import secrets
 
 from connection import lan_code, local_server, net
+from core.generation_settings import validar_parametros_mapa
 from core.state import state
 
 
@@ -53,7 +54,7 @@ def hostear(tamanho=90, seed=None):
 
     try:
         ip_host = lan_code.obter_ip_preferido()
-        codigo = lan_code.ip_para_codigo(ip_host)
+        codigo = lan_code.criar_codigo_sala(ip_host)
     except (RuntimeError, ValueError) as exc:
         print(f"Nao foi possivel criar o codigo: {exc}")
         return {"ok": False}
@@ -78,20 +79,21 @@ def conectar(codigo):
         uri = lan_code.criar_url_websocket(ip_host)
     except ValueError:
         return {"ok": False}
+    codigo_normalizado = codigo.strip().upper()
 
     net.parar()
     state.resetar_sessao(
         uri,
         "Conectando ao host...",
         "connect",
-        lobby_code=codigo.strip().upper(),
+        lobby_code=codigo_normalizado,
     )
     print(f"Conectando em {ip_host}...")
-    net.iniciar(uri)
+    net.iniciar(uri, room_code=codigo_normalizado)
     return {"ok": True}
 
 
-def configurar_lobby(seed, tamanho):
+def configurar_lobby(seed, tamanho, parametros=None):
     if (
         isinstance(seed, bool)
         or not isinstance(seed, int)
@@ -100,6 +102,10 @@ def configurar_lobby(seed, tamanho):
         or not isinstance(tamanho, int)
         or not 1 <= tamanho <= 200
     ):
+        return {"ok": False}
+    try:
+        parametros = validar_parametros_mapa(parametros)
+    except ValueError:
         return {"ok": False}
 
     with state.lock:
@@ -114,6 +120,7 @@ def configurar_lobby(seed, tamanho):
             "tipo": "configurar_lobby",
             "seed": seed,
             "tamanho": tamanho,
+            "parametros_mapa": parametros,
         }
     )
     if not enviado:
@@ -124,12 +131,16 @@ def configurar_lobby(seed, tamanho):
     return {"ok": enviado}
 
 
-def regenerar_lobby(tamanho):
+def regenerar_lobby(tamanho, parametros=None):
     if (
         isinstance(tamanho, bool)
         or not isinstance(tamanho, int)
         or not 1 <= tamanho <= 200
     ):
+        return {"ok": False}
+    try:
+        parametros = validar_parametros_mapa(parametros)
+    except ValueError:
         return {"ok": False}
 
     with state.lock:
@@ -139,7 +150,13 @@ def regenerar_lobby(tamanho):
         state.lobby_error = None
         state.lobby_status = "Gerando uma nova prévia do mundo..."
 
-    enviado = net.enviar({"tipo": "regenerar_lobby", "tamanho": tamanho})
+    enviado = net.enviar(
+        {
+            "tipo": "regenerar_lobby",
+            "tamanho": tamanho,
+            "parametros_mapa": parametros,
+        }
+    )
     if not enviado:
         with state.lock:
             state.lobby_generating = False
