@@ -11,6 +11,7 @@ class Player:
         self.is_host = is_host
         self.recursos = recursos.Recursos()
         self._construcoes = []
+        self.posicao_inicial = None
 
     @property
     def construcoes(self):

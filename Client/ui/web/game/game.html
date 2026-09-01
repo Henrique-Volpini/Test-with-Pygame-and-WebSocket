@@ -2,7 +2,7 @@
     <div class="world-backdrop" aria-hidden="true"></div>
     <canvas id="world-canvas" width="1280" height="960"></canvas>
 
-    <header id="resource-hud" aria-label="Recursos do reino">
+    <header id="resource-hud" aria-label="Recursos do reino e ciclo do jogo">
         <div class="hud-panel">
             <div class="hud-heading">
                 <span class="hud-kicker">DOMÍNIO</span>
@@ -32,10 +32,26 @@
                     <strong id="food-value" class="resource-value">500</strong>
                 </span>
             </div>
+
+            <div id="game-tick" class="tick-item" role="timer" aria-label="Próximo ciclo do jogo em 10 segundos">
+                <span class="tick-copy">
+                    <span id="tick-cycle-number" class="tick-cycle">CICLO 1</span>
+                    <span class="tick-readout">
+                        <strong id="tick-countdown-value">10</strong>
+                        <span>SEG</span>
+                    </span>
+                </span>
+                <span id="tick-progress" class="tick-progress" role="progressbar" aria-label="Tempo restante até o próximo ciclo" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" style="--tick-progress: 1"></span>
+            </div>
         </div>
     </header>
 
-    <div id="build-menu" hidden>
+    <div id="build-menu">
+        <button id="build-panel-toggle" class="build-panel-toggle" type="button" aria-controls="build-panel" aria-expanded="false">
+            <span class="build-panel-toggle-label">Construções</span>
+            <span class="build-panel-toggle-chevron" aria-hidden="true">⌃</span>
+        </button>
+
         <aside id="build-info" class="build-info" role="tooltip" aria-hidden="true">
             <div class="build-info-layout">
                 <div class="build-info-copy">
@@ -71,7 +87,7 @@
             </div>
         </aside>
 
-        <section class="build-panel" aria-labelledby="build-title">
+        <section id="build-panel" class="build-panel" aria-labelledby="build-title" aria-hidden="true" inert>
             <header class="build-header">
                 <div>
                     <h2 id="build-title">Escolha uma estrutura</h2>

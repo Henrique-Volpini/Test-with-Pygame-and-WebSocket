@@ -3,6 +3,7 @@ import {
     byId,
     LOGICAL_HEIGHT,
     LOGICAL_WIDTH,
+    VIEWPORT_RESIZE_EVENT,
 } from "../shared/runtime.js";
 
 const TILE_SIZE = 32;
@@ -14,11 +15,14 @@ const ZOOM_STEP = 0.1;
 const BUILD_INFO_SHOW_DELAY_MS = 320;
 const BUILD_INFO_SWITCH_DELAY_MS = 70;
 const BUILD_INFO_HIDE_DELAY_MS = 110;
+const DEFAULT_TICK_INTERVAL_MS = 10000;
 const RESOURCE_NAMES = ["gold", "wood", "food"];
 
 export function createGame({callBridge, viewport}) {
     const gameScreen = byId("game-screen");
     const buildMenu = byId("build-menu");
+    const buildPanel = byId("build-panel");
+    const buildPanelToggle = byId("build-panel-toggle");
     const buildInfo = byId("build-info");
     const buildInfoCategory = byId("build-info-category");
     const buildInfoName = byId("build-info-name");
@@ -26,6 +30,10 @@ export function createGame({callBridge, viewport}) {
     const buildInfoDescription = byId("build-info-description");
     const buildInfoStatus = byId("build-info-status");
     const buildCostFree = byId("build-cost-free");
+    const gameTick = byId("game-tick");
+    const tickCountdownValue = byId("tick-countdown-value");
+    const tickProgress = byId("tick-progress");
+    const tickCycleNumber = byId("tick-cycle-number");
     const buildCosts = Object.fromEntries(RESOURCE_NAMES.map((resource) => [
         resource,
         {
@@ -58,10 +66,20 @@ export function createGame({callBridge, viewport}) {
         cameraX: 0,
         cameraY: 0,
         zoom: 1,
+        viewportWidth: LOGICAL_WIDTH,
+        viewportHeight: LOGICAL_HEIGHT,
         selectedTile: null,
         buildOpen: false,
         interactionLocked: false,
         heldKeys: new Set(),
+        focusedSpawnKey: null,
+        tickIntervalMs: DEFAULT_TICK_INTERVAL_MS,
+        tickRemainingAtSyncMs: DEFAULT_TICK_INTERVAL_MS,
+        tickSyncedAtMs: performance.now(),
+        tickNumber: 0,
+        displayedTickTenths: null,
+        displayedTickProgress: null,
+        displayedTickNumber: null,
     };
 
     const tileImages = {
@@ -83,6 +101,52 @@ export function createGame({callBridge, viewport}) {
         target.addEventListener(type, listener, options);
         disposers.push(() => target.removeEventListener(type, listener, options));
     }
+
+    function syncCanvasResolution() {
+        const width = Math.max(1, Math.round(state.viewportWidth));
+        const height = Math.max(1, Math.round(state.viewportHeight));
+
+        if (canvas.width !== width) {
+            canvas.width = width;
+        }
+        if (canvas.height !== height) {
+            canvas.height = height;
+        }
+        context.imageSmoothingEnabled = false;
+    }
+
+    function handleViewportResize(event) {
+        const nextWidth = Number(event.detail?.logicalWidth);
+        const nextHeight = Number(event.detail?.logicalHeight);
+        if (
+            !Number.isInteger(nextWidth) ||
+            !Number.isInteger(nextHeight) ||
+            nextWidth < 1 ||
+            nextHeight < 1
+        ) {
+            return;
+        }
+
+        const centerX = state.cameraX + state.viewportWidth / (2 * state.zoom);
+        const centerY = state.cameraY + state.viewportHeight / (2 * state.zoom);
+        const dimensionsChanged = (
+            nextWidth !== state.viewportWidth ||
+            nextHeight !== state.viewportHeight
+        );
+
+        state.viewportWidth = nextWidth;
+        state.viewportHeight = nextHeight;
+        syncCanvasResolution();
+
+        if (dimensionsChanged && state.worldWidth > 0 && state.worldHeight > 0) {
+            state.cameraX = centerX - state.viewportWidth / (2 * state.zoom);
+            state.cameraY = centerY - state.viewportHeight / (2 * state.zoom);
+            clampCamera();
+        }
+    }
+
+    syncCanvasResolution();
+    listen(viewport, VIEWPORT_RESIZE_EVENT, handleViewportResize);
 
     function clearBuildInfoTimers() {
         if (buildInfoShowTimer !== null) {
@@ -213,8 +277,22 @@ export function createGame({callBridge, viewport}) {
     }
 
     function setBuildVisibility() {
-        buildMenu.hidden = !state.visible || !state.buildOpen;
-        if (buildMenu.hidden) {
+        const panelOpen = state.visible && state.buildOpen;
+
+        // O contêiner permanece montado durante a partida para que o CSS possa
+        // animá-lo até a borda inferior; somente a aba fica exposta ao fechar.
+        buildMenu.hidden = !state.visible;
+        buildMenu.classList.toggle("is-open", panelOpen);
+        buildMenu.setAttribute("aria-hidden", String(!state.visible));
+        buildPanel.setAttribute("aria-hidden", String(!panelOpen));
+        buildPanel.inert = !panelOpen;
+        buildPanelToggle.setAttribute("aria-expanded", String(panelOpen));
+        buildPanelToggle.setAttribute(
+            "aria-label",
+            panelOpen ? "Fechar menu de construções" : "Abrir menu de construções",
+        );
+
+        if (!panelOpen) {
             hideBuildInfo();
         }
     }
@@ -224,6 +302,7 @@ export function createGame({callBridge, viewport}) {
         gameScreen.hidden = !state.visible;
         if (!state.visible) {
             state.heldKeys.clear();
+            state.buildOpen = false;
         }
         setBuildVisibility();
     }
@@ -245,10 +324,66 @@ export function createGame({callBridge, viewport}) {
         }
     }
 
+    function applyTickSnapshot(snapshot) {
+        const intervalMs = snapshot.tick_interval_ms;
+        const remainingMs = snapshot.tick_remaining_ms;
+        const tickNumber = snapshot.tick_number;
+
+        if (Number.isFinite(intervalMs) && intervalMs > 0) {
+            state.tickIntervalMs = intervalMs;
+        }
+        if (Number.isFinite(remainingMs) && remainingMs >= 0) {
+            state.tickRemainingAtSyncMs = Math.min(
+                state.tickIntervalMs,
+                remainingMs,
+            );
+            state.tickSyncedAtMs = performance.now();
+        }
+        if (Number.isInteger(tickNumber) && tickNumber >= 0) {
+            state.tickNumber = tickNumber;
+        }
+    }
+
+    function updateTickHud(now) {
+        const elapsedMs = Math.max(0, now - state.tickSyncedAtMs);
+        const remainingMs = Math.max(
+            0,
+            state.tickRemainingAtSyncMs - elapsedMs,
+        );
+        const remainingTenths = Math.ceil(remainingMs / 100);
+        const progress = Math.max(
+            0,
+            Math.min(1, remainingMs / state.tickIntervalMs),
+        );
+        const progressPercent = Math.round(progress * 100);
+
+        if (remainingTenths !== state.displayedTickTenths) {
+            const seconds = (remainingTenths / 10).toFixed(1).replace(".", ",");
+            tickCountdownValue.textContent = seconds;
+            gameTick.setAttribute(
+                "aria-label",
+                `Próximo ciclo do jogo em ${seconds} segundos`,
+            );
+            state.displayedTickTenths = remainingTenths;
+        }
+        tickProgress.style.setProperty("--tick-progress", String(progress));
+        if (progressPercent !== state.displayedTickProgress) {
+            tickProgress.setAttribute("aria-valuenow", String(progressPercent));
+            state.displayedTickProgress = progressPercent;
+        }
+        if (state.tickNumber !== state.displayedTickNumber) {
+            tickCycleNumber.textContent = `CICLO ${state.tickNumber + 1}`;
+            state.displayedTickNumber = state.tickNumber;
+        }
+    }
+
     function applySnapshot(snapshot) {
         if (!snapshot || typeof snapshot !== "object") {
             return;
         }
+
+        applyTickSnapshot(snapshot);
+        updateTickHud(performance.now());
 
         if (Array.isArray(snapshot.matrix)) {
             state.matrix = snapshot.matrix;
@@ -265,6 +400,28 @@ export function createGame({callBridge, viewport}) {
             state.worldHeight = height;
         } else if (state.matrix) {
             state.worldHeight = state.matrix.length;
+        }
+
+        const spawnPosition = snapshot.spawn_position;
+        if (
+            Array.isArray(spawnPosition) &&
+            spawnPosition.length === 2 &&
+            spawnPosition.every(Number.isInteger)
+        ) {
+            const [spawnX, spawnY] = spawnPosition;
+            const spawnKey = `${spawnX},${spawnY}`;
+            if (state.focusedSpawnKey !== spawnKey) {
+                state.focusedSpawnKey = spawnKey;
+                state.cameraX = (
+                    (spawnX + 0.5) * TILE_SIZE - state.viewportWidth / (2 * state.zoom)
+                );
+                state.cameraY = (
+                    (spawnY + 0.5) * TILE_SIZE - state.viewportHeight / (2 * state.zoom)
+                );
+                clampCamera();
+            }
+        } else if (spawnPosition === null) {
+            state.focusedSpawnKey = null;
         }
 
         if (snapshot.resources && typeof snapshot.resources === "object") {
@@ -301,11 +458,11 @@ export function createGame({callBridge, viewport}) {
         }
 
         return {
-            x: Math.max(0, Math.min(LOGICAL_WIDTH - 1, Math.trunc(
-                (clientX - rect.left) * LOGICAL_WIDTH / rect.width,
+            x: Math.max(0, Math.min(state.viewportWidth - 1, Math.trunc(
+                (clientX - rect.left) * state.viewportWidth / rect.width,
             ))),
-            y: Math.max(0, Math.min(LOGICAL_HEIGHT - 1, Math.trunc(
-                (clientY - rect.top) * LOGICAL_HEIGHT / rect.height,
+            y: Math.max(0, Math.min(state.viewportHeight - 1, Math.trunc(
+                (clientY - rect.top) * state.viewportHeight / rect.height,
             ))),
         };
     }
@@ -347,8 +504,8 @@ export function createGame({callBridge, viewport}) {
             return;
         }
 
-        const visibleWidth = LOGICAL_WIDTH / state.zoom;
-        const visibleHeight = LOGICAL_HEIGHT / state.zoom;
+        const visibleWidth = state.viewportWidth / state.zoom;
+        const visibleHeight = state.viewportHeight / state.zoom;
         const maxX = state.worldWidth * TILE_SIZE - visibleWidth + CAMERA_MARGIN;
         const maxY = state.worldHeight * TILE_SIZE - visibleHeight + CAMERA_MARGIN;
 
@@ -390,7 +547,7 @@ export function createGame({callBridge, viewport}) {
     }
 
     function drawWorld() {
-        context.clearRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+        context.clearRect(0, 0, state.viewportWidth, state.viewportHeight);
 
         if (!state.matrix || state.worldWidth <= 0 || state.worldHeight <= 0) {
             return;
@@ -401,11 +558,11 @@ export function createGame({callBridge, viewport}) {
         const startY = Math.max(0, Math.floor(state.cameraY / TILE_SIZE) - 1);
         const endX = Math.min(
             state.worldWidth,
-            Math.ceil((state.cameraX + LOGICAL_WIDTH / state.zoom) / TILE_SIZE) + 1,
+            Math.ceil((state.cameraX + state.viewportWidth / state.zoom) / TILE_SIZE) + 1,
         );
         const endY = Math.min(
             state.worldHeight,
-            Math.ceil((state.cameraY + LOGICAL_HEIGHT / state.zoom) / TILE_SIZE) + 1,
+            Math.ceil((state.cameraY + state.viewportHeight / state.zoom) / TILE_SIZE) + 1,
         );
 
         for (let y = startY; y < endY; y += 1) {
@@ -499,6 +656,13 @@ export function createGame({callBridge, viewport}) {
             return;
         }
 
+        if (event.code === "Escape" && state.buildOpen) {
+            event.preventDefault();
+            state.buildOpen = false;
+            setBuildVisibility();
+            return;
+        }
+
         if (["KeyW", "KeyA", "KeyS", "KeyD"].includes(event.code)) {
             event.preventDefault();
             state.heldKeys.add(event.code);
@@ -530,6 +694,14 @@ export function createGame({callBridge, viewport}) {
 
     listen(window, "blur", () => state.heldKeys.clear());
 
+    disposers.push(bindPrimaryAction(buildPanelToggle, () => {
+        if (!state.visible || state.interactionLocked) {
+            return;
+        }
+        state.buildOpen = !state.buildOpen;
+        setBuildVisibility();
+    }));
+
     for (const button of document.querySelectorAll(".build-button")) {
         listen(button, "pointerenter", () => scheduleBuildInfo(button));
         listen(button, "pointerleave", scheduleBuildInfoHide);
@@ -542,6 +714,7 @@ export function createGame({callBridge, viewport}) {
     }
 
     updateResourceHud();
+    updateTickHud(performance.now());
 
     let previousFrameTime = performance.now();
     let animationFrameId = null;
@@ -553,6 +726,7 @@ export function createGame({callBridge, viewport}) {
         previousFrameTime = time;
 
         if (state.visible) {
+            updateTickHud(time);
             if (!state.interactionLocked) {
                 updateCamera(deltaSeconds);
             }

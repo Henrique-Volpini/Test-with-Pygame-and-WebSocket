@@ -144,6 +144,18 @@ class SettingsUiTests(unittest.TestCase):
             "settings-resolution",
             [],
         )
+        self.assertEqual(
+            static_presets,
+            [
+                "960x720",
+                "1280x720",
+                "1280x960",
+                "1366x768",
+                "1536x864",
+                "1600x900",
+                "1920x1080",
+            ],
+        )
         dynamic_presets = (
             "resolutions" in settings_js
             and re.search(r'createElement\(\s*["\']option["\']\s*\)', settings_js)
@@ -235,9 +247,24 @@ class SettingsUiTests(unittest.TestCase):
         self.assertRegex(apply_source, r"\bdisplay_?bounds\b|\bdisplayBounds\b")
         self.assertIn("screen.availWidth", settings_js)
         self.assertIn("screen.availHeight", settings_js)
+        self.assertIn("screen.width", settings_js)
+        self.assertIn("screen.height", settings_js)
+        self.assertIn("displayBounds(draft.fullscreen)", settings_js)
+        self.assertIn("displayBounds(!state.applied.fullscreen)", settings_js)
+        self.assertIn("resolutionFitsDisplay(selected, false)", settings_js)
+        self.assertIn("resolutionFitsDisplay(selected, true)", settings_js)
+        self.assertIn("fullscreenInput.checked = true", settings_js)
+        self.assertIn("fitMode: false", settings_js)
+        self.assertIn("selecionada automaticamente", settings_js)
+        self.assertIn("onDisplayModeChange", settings_js)
         self.assertRegex(
             settings_js,
-            r'callBridge\(\s*["\']toggle_fullscreen["\']\s*,\s*displayBounds\(\)',
+            r'onDisplayModeChange[\s\S]{0,900}updateAvailableResolutions\(',
+        )
+        self.assertRegex(
+            settings_js,
+            r'callBridge\([\s\S]{0,120}["\']toggle_fullscreen["\'][\s\S]{0,120}'
+            r'displayBounds\(!state\.applied\.fullscreen\)',
         )
 
     def test_game_interaction_lock_is_exposed_and_connected_by_app(self):

@@ -57,6 +57,45 @@ class FrontendStructureTests(unittest.TestCase):
         self.assertNotIn('id="menu-screen"', html)
         self.assertNotIn('id="game-screen"', html)
 
+    def test_viewport_and_canvas_expand_responsively_on_widescreen(self):
+        runtime_js = (WEB_DIR / "shared" / "runtime.js").read_text(
+            encoding="utf-8",
+        )
+        shared_css = (WEB_DIR / "shared" / "shared.css").read_text(
+            encoding="utf-8",
+        )
+        game_js = (WEB_DIR / "game" / "game.js").read_text(encoding="utf-8")
+        game_css = (WEB_DIR / "game" / "game.css").read_text(encoding="utf-8")
+        menu_css = (WEB_DIR / "menu" / "menu.css").read_text(encoding="utf-8")
+        lobby_css = (WEB_DIR / "lobby" / "lobby.css").read_text(encoding="utf-8")
+        settings_css = (WEB_DIR / "settings" / "settings.css").read_text(
+            encoding="utf-8",
+        )
+
+        self.assertIn("export const MIN_LOGICAL_WIDTH = 1280", runtime_js)
+        self.assertIn("export const LOGICAL_HEIGHT = 960", runtime_js)
+        self.assertRegex(
+            runtime_js,
+            r"Math\.max\(\s*MIN_LOGICAL_WIDTH,\s*Math\.round\("
+            r"LOGICAL_HEIGHT \* availableWidth / availableHeight\)",
+        )
+        self.assertIn("viewport.style.transform = `scale(${scale})`", runtime_js)
+        self.assertIn("VIEWPORT_RESIZE_EVENT", runtime_js)
+        self.assertIn("--logical-width: 1280px", shared_css)
+        self.assertIn("width: var(--logical-width)", shared_css)
+        self.assertIn("object-fit: cover", shared_css)
+
+        self.assertIn("width: 100%", game_css)
+        self.assertIn("height: 100%", game_css)
+        self.assertIn("syncCanvasResolution", game_js)
+        self.assertIn("state.viewportWidth", game_js)
+        self.assertIn("state.viewportHeight", game_js)
+        self.assertIn("VIEWPORT_RESIZE_EVENT", game_js)
+        self.assertIn("left: calc(50% - 590px)", lobby_css)
+        self.assertIn("right: calc((100% - 1280px) / 2 + 52px)", menu_css)
+        self.assertIn(".settings-overlay", settings_css)
+        self.assertIn("width: 100%", settings_css)
+
     def test_menu_lobby_and_game_markup_have_independent_responsibilities(self):
         menu = inspect(WEB_DIR / "menu" / "menu.html")
         lobby = inspect(WEB_DIR / "lobby" / "lobby.html")
@@ -209,6 +248,87 @@ class FrontendStructureTests(unittest.TestCase):
         image_dir = CLIENT_DIR / "assets" / "images"
         self.assertFalse((image_dir / "Recursos_menu.png").exists())
         self.assertFalse((image_dir / "Menu_Build.png").exists())
+
+    def test_game_shows_the_tick_and_animates_panels_from_screen_edges(self):
+        game_path = WEB_DIR / "game" / "game.html"
+        game = inspect(game_path)
+        game_css = (WEB_DIR / "game" / "game.css").read_text(encoding="utf-8")
+        game_js = (WEB_DIR / "game" / "game.js").read_text(encoding="utf-8")
+
+        for element_id in (
+            "game-tick",
+            "tick-countdown-value",
+            "tick-progress",
+            "tick-cycle-number",
+            "build-panel-toggle",
+            "build-panel",
+        ):
+            self.assertIn(element_id, game.ids)
+
+        self.assertEqual(game.attributes_by_id["game-tick"]["role"], "timer")
+        self.assertEqual(
+            game.attributes_by_id["tick-progress"]["role"],
+            "progressbar",
+        )
+        self.assertEqual(
+            game.attributes_by_id["tick-progress"]["aria-valuemin"],
+            "0",
+        )
+        self.assertEqual(
+            game.attributes_by_id["tick-progress"]["aria-valuemax"],
+            "100",
+        )
+        self.assertEqual(
+            game.attributes_by_id["build-panel-toggle"]["aria-controls"],
+            "build-panel",
+        )
+        self.assertEqual(
+            game.attributes_by_id["build-panel-toggle"]["aria-expanded"],
+            "false",
+        )
+
+        self.assertIn("snapshot.tick_remaining_ms", game_js)
+        self.assertIn("snapshot.tick_interval_ms", game_js)
+        self.assertIn("snapshot.tick_number", game_js)
+        self.assertIn("updateTickHud(time)", game_js)
+        self.assertIn(
+            'tickProgress.style.setProperty("--tick-progress", String(progress))',
+            game_js,
+        )
+        self.assertIn('buildMenu.classList.toggle("is-open", panelOpen)', game_js)
+        self.assertIn("buildMenu.hidden = !state.visible", game_js)
+        self.assertIn("buildPanel.inert = !panelOpen", game_js)
+        self.assertIn("state.buildOpen = !state.buildOpen", game_js)
+        self.assertNotIn(
+            "buildMenu.hidden = !state.visible || !state.buildOpen",
+            game_js,
+        )
+
+        self.assertRegex(
+            game_css,
+            r"#resource-hud\s*\{[\s\S]*?top:\s*0;",
+        )
+        self.assertIn("@keyframes hud-arrive", game_css)
+        self.assertIn(
+            "#game-screen:not([hidden]) .hud-panel",
+            game_css,
+        )
+        self.assertRegex(
+            game_css,
+            r"#build-menu\s*\{[\s\S]*?bottom:\s*0;"
+            r"[\s\S]*?transform:\s*translate\(",
+        )
+        self.assertRegex(
+            game_css,
+            r"#build-menu\.is-open\s*\{[\s\S]*?transform:\s*translate\(",
+        )
+        self.assertIn("transition: transform", game_css)
+        self.assertRegex(
+            game_css,
+            r"@media \(prefers-reduced-motion: reduce\)[\s\S]*?"
+            r"#game-screen:not\(\[hidden\]\) \.hud-panel,[\s\S]*?"
+            r"#game-screen:not\(\[hidden\]\) \.build-panel-toggle",
+        )
 
     def test_build_details_explain_every_tile_and_match_server_costs(self):
         game_path = WEB_DIR / "game" / "game.html"

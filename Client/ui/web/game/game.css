@@ -45,31 +45,33 @@
     z-index: 1;
     inset: 0;
     display: block;
-    width: 1280px;
-    height: 960px;
+    width: 100%;
+    height: 100%;
     background: transparent;
 }
 
 #resource-hud {
     position: absolute;
     z-index: 3;
-    top: 18px;
-    left: 50%;
-    width: 770px;
-    height: 82px;
+    top: 0;
+    left: 0;
+    display: flex;
+    width: 100%;
+    height: 90px;
+    justify-content: center;
     pointer-events: none;
-    transform: translateX(-50%);
 }
 
 .hud-panel {
     position: relative;
     display: grid;
-    grid-template-columns: 164px repeat(3, minmax(0, 1fr));
+    grid-template-columns: 164px repeat(3, minmax(135px, 1fr)) 220px;
     align-items: center;
-    width: 100%;
-    height: 72px;
+    width: min(1000px, calc(100% - 24px));
+    height: 80px;
     padding: 0 14px;
     border: 2px solid var(--gold-dark);
+    border-top: 0;
     background:
         linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0 1px, transparent 1px 13px),
         linear-gradient(225deg, rgba(0, 0, 0, 0.07) 0 1px, transparent 1px 17px),
@@ -82,7 +84,13 @@
         0 12px 28px rgba(9, 8, 6, 0.5),
         inset 0 1px rgba(255, 231, 174, 0.12),
         inset 0 -8px 18px rgba(0, 0, 0, 0.2);
-    animation: hud-arrive 220ms ease-out both;
+}
+
+#game-screen:not([hidden]) .hud-panel {
+}
+
+#game-screen:not([hidden]) .hud-panel {
+    animation: hud-arrive 300ms cubic-bezier(0.2, 0.78, 0.2, 1) both;
 }
 
 .hud-panel::before {
@@ -96,7 +104,7 @@
 .hud-panel::after {
     content: "";
     position: absolute;
-    top: -9px;
+    bottom: -9px;
     left: 50%;
     width: 14px;
     height: 14px;
@@ -156,6 +164,7 @@
 
 .resource-item--food {
     --resource-accent: #a9bf62;
+    border-right: 0;
 }
 
 .resource-icon {
@@ -267,21 +276,172 @@
     white-space: nowrap;
 }
 
+.tick-item {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 66px;
+    align-items: center;
+    min-width: 0;
+    height: 58px;
+    padding: 5px 13px 9px 16px;
+    overflow: hidden;
+    border-left: 1px solid rgba(199, 150, 67, 0.35);
+    background:
+        linear-gradient(90deg, rgba(202, 157, 70, 0.08), transparent 72%),
+        rgba(10, 8, 6, 0.2);
+}
+
+.tick-copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.tick-cycle {
+    overflow: hidden;
+    color: #ad9973;
+    font-family: "Courier New", monospace;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 13px;
+    letter-spacing: 1.6px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tick-readout {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    color: var(--gold-bright);
+    font-family: "Courier New", monospace;
+    text-shadow: 0 2px #100b08;
+}
+
+#tick-countdown-value {
+    min-width: 44px;
+    font-size: 28px;
+    line-height: 30px;
+    text-align: right;
+}
+
+.tick-readout > span {
+    color: #b5a17b;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.tick-progress {
+    --tick-progress: 1;
+    position: relative;
+    width: 54px;
+    height: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(218, 177, 90, 0.55);
+    background: rgba(12, 9, 6, 0.72);
+    box-shadow:
+        inset 0 0 0 2px rgba(13, 9, 7, 0.5),
+        0 0 10px rgba(222, 177, 83, 0.12);
+}
+
+.tick-progress::before {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    background: linear-gradient(90deg, #9a6c2e, #e9c878);
+    box-shadow: 0 0 9px rgba(234, 198, 112, 0.42);
+    transform: scaleX(clamp(0, var(--tick-progress), 1));
+    transform-origin: left center;
+    transition: transform 100ms linear;
+}
+
 #build-menu {
+    --build-handle-height: 42px;
     position: absolute;
     z-index: 4;
-    bottom: 20px;
+    bottom: 0;
     left: 50%;
-    width: 1160px;
-    height: 178px;
+    width: 100%;
+    height: 224px;
     pointer-events: none;
+    transform: translate(-50%, calc(100% - var(--build-handle-height)));
+    transition: transform 260ms cubic-bezier(0.22, 0.78, 0.2, 1);
+    will-change: transform;
+}
+
+#build-menu.is-open {
+    transform: translate(-50%, 0);
+}
+
+.build-panel-toggle {
+    position: absolute;
+    z-index: 8;
+    top: 0;
+    left: 50%;
+    display: flex;
+    width: 210px;
+    height: var(--build-handle-height);
+    align-items: center;
+    justify-content: center;
+    gap: 13px;
+    padding: 0 20px;
+    color: #f2d899;
+    border: 2px solid var(--gold-dark);
+    border-bottom: 0;
+    background:
+        linear-gradient(110deg, rgba(255, 255, 255, 0.045), transparent 42%),
+        linear-gradient(180deg, #4a3423, #241911);
+    box-shadow:
+        0 0 0 2px var(--ink),
+        0 0 0 4px rgba(199, 150, 67, 0.52),
+        0 -8px 20px rgba(8, 7, 5, 0.42),
+        inset 0 1px rgba(255, 232, 177, 0.12);
+    font-family: "Courier New", monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    pointer-events: auto;
     transform: translateX(-50%);
 }
 
+#game-screen:not([hidden]) .build-panel-toggle {
+    animation: build-handle-arrive 300ms cubic-bezier(0.2, 0.78, 0.2, 1) both;
+}
+
+.build-panel-toggle:hover {
+    color: #fff0c1;
+    filter: brightness(1.12);
+}
+
+.build-panel-toggle:focus-visible {
+    outline: 2px solid #fff1bd;
+    outline-offset: 4px;
+}
+
+.build-panel-toggle-chevron {
+    display: inline-block;
+    font-size: 17px;
+    line-height: 1;
+    transition: transform 220ms ease;
+}
+
+.build-panel-toggle[aria-expanded="true"] .build-panel-toggle-chevron {
+    transform: rotate(180deg);
+}
+
 .build-panel {
-    position: relative;
+    position: absolute;
+    top: var(--build-handle-height);
+    right: 0;
+    bottom: 0;
+    left: 0;
     width: 100%;
-    height: 100%;
+    height: auto;
     padding: 14px 20px;
     color: var(--parchment);
     border: 2px solid var(--gold-dark);
@@ -298,7 +458,10 @@
         inset 0 1px rgba(255, 231, 174, 0.12),
         inset 0 -10px 24px rgba(0, 0, 0, 0.2);
     pointer-events: auto;
-    animation: build-arrive 200ms ease-out both;
+}
+
+#build-menu:not(.is-open) .build-panel {
+    pointer-events: none;
 }
 
 .build-panel::before {
@@ -825,7 +988,7 @@
 @keyframes hud-arrive {
     from {
         opacity: 0;
-        transform: translateY(-8px);
+        transform: translateY(-100%);
     }
     to {
         opacity: 1;
@@ -833,24 +996,30 @@
     }
 }
 
-@keyframes build-arrive {
+@keyframes build-handle-arrive {
     from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translate(-50%, 100%);
     }
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translate(-50%, 0);
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .hud-panel,
-    .build-panel,
+    #build-menu,
     .build-info,
     .build-button,
-    .build-button::before {
+    .build-button::before,
+    .build-panel-toggle-chevron,
+    .tick-progress::before {
         animation: none;
         transition: none;
+    }
+
+    #game-screen:not([hidden]) .hud-panel,
+    #game-screen:not([hidden]) .build-panel-toggle {
+        animation: none;
     }
 }

@@ -1,5 +1,7 @@
 import asyncio
 
+import core.game_clock as game_clock
+import core.spawn as spawn
 import core.world as world
 from core.state import state
 
@@ -22,15 +24,19 @@ def _erro(acao, codigo, mensagem):
     }
 
 
-def _jogadores_para(player_id):
-    jogadores = sorted(
+def _jogadores_ativos():
+    return sorted(
         (
             jogador
             for jogador in state.players.values()
             if jogador.id in state.active_conn_by_player_id
         ),
-        key=lambda item: item.join_order,
+        key=lambda item: (item.join_order, item.id),
     )
+
+
+def _jogadores_para(player_id):
+    jogadores = _jogadores_ativos()
     return [
         {
             "id": jogador.id,
@@ -108,8 +114,18 @@ async def process_lobby_action(data, player_id, broadcast):
         return _erro(action, "world_busy", "Aguarde a geração atual terminar."), None
 
     if action == "iniciar_partida":
+        try:
+            spawn.posicionar_jogadores(
+                state.matriz,
+                _jogadores_ativos(),
+            )
+        except spawn.SpawnPlacementError as exc:
+            return _erro(action, "spawn_unavailable", str(exc)), None
+
+        state.matriz_dict = world.transformar_matriz_em_dict(state.matriz)
+        state.world_revision += 1
         state.phase = "game"
-        state.tempo_partida = 0
+        game_clock.reset()
         state.lobby_revision += 1
         return None, "game"
 

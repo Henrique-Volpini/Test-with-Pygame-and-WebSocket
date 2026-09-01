@@ -69,6 +69,9 @@ class State:
         self.next_player_order = 1
 
         self.tempo_partida = 0
+        self.partida_inicio_monotonic = None
+        self.proximo_tick_monotonic = None
+        self.tick_numero = 0
 
 
 state = State()

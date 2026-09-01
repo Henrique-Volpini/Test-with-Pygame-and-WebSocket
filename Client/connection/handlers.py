@@ -1,3 +1,5 @@
+import time
+
 import core.world as world
 from core.generation_settings import (
     calcular_percentuais_biomas,
@@ -18,8 +20,57 @@ def _marcar_partida_pronta():
         state.estado_jogo = "partida"
 
 
+def _validar_relogio(data):
+    chaves = (
+        "match_time_ms",
+        "tick_interval_ms",
+        "tick_number",
+        "tick_remaining_ms",
+    )
+    presentes = [chave in data for chave in chaves]
+    if not any(presentes):
+        # Mantem compatibilidade com um servidor antigo durante a migracao.
+        return None
+    if not all(presentes):
+        return False
+
+    match_time_ms = data["match_time_ms"]
+    tick_interval_ms = data["tick_interval_ms"]
+    tick_number = data["tick_number"]
+    tick_remaining_ms = data["tick_remaining_ms"]
+    if any(
+        isinstance(valor, bool) or not isinstance(valor, int)
+        for valor in (
+            match_time_ms,
+            tick_interval_ms,
+            tick_number,
+            tick_remaining_ms,
+        )
+    ):
+        return False
+    if (
+        match_time_ms < 0
+        or not 1 <= tick_interval_ms <= 600_000
+        or tick_number < 0
+        or not 0 <= tick_remaining_ms <= tick_interval_ms
+    ):
+        return False
+
+    return {
+        "match_time_ms": match_time_ms,
+        "tick_interval_ms": tick_interval_ms,
+        "tick_number": tick_number,
+        "tick_remaining_ms": tick_remaining_ms,
+    }
+
+
 def _aplicar_snapshot(data):
+    recebido_em = time.monotonic()
     if data.get("fase") != "game":
+        return False
+
+    relogio = _validar_relogio(data)
+    if relogio is False:
         return False
 
     recursos = data.get("recursos")
@@ -28,7 +79,37 @@ def _aplicar_snapshot(data):
     if not all(chave in recursos for chave in ("gold", "wood", "food")):
         return False
 
+    posicao_inicial = data.get("posicao_inicial")
+    if posicao_inicial is not None and (
+        not isinstance(posicao_inicial, (list, tuple))
+        or len(posicao_inicial) != 2
+        or any(
+            isinstance(coordenada, bool) or not isinstance(coordenada, int)
+            for coordenada in posicao_inicial
+        )
+    ):
+        return False
+
     matriz = data.get("matriz")
+    if posicao_inicial is not None:
+        if matriz is not None:
+            if (
+                not isinstance(matriz, list)
+                or not matriz
+                or not isinstance(matriz[0], list)
+                or not matriz[0]
+                or not 0 <= posicao_inicial[0] < len(matriz[0])
+                or not 0 <= posicao_inicial[1] < len(matriz)
+            ):
+                return False
+        else:
+            with state.lock:
+                if not (
+                    0 <= posicao_inicial[0] < state.largura_grid
+                    and 0 <= posicao_inicial[1] < state.altura_grid
+                ):
+                    return False
+
     if matriz is not None and not world.atualizar_matriz(matriz):
         return False
 
@@ -41,6 +122,17 @@ def _aplicar_snapshot(data):
             "wood": recursos["wood"],
             "food": recursos["food"],
         }
+        state.spawn_position = (
+            tuple(posicao_inicial)
+            if posicao_inicial is not None
+            else None
+        )
+        if relogio is not None:
+            state.match_time_ms = relogio["match_time_ms"]
+            state.tick_interval_ms = relogio["tick_interval_ms"]
+            state.tick_number = relogio["tick_number"]
+            state.tick_remaining_ms = relogio["tick_remaining_ms"]
+            state.tick_snapshot_monotonic = recebido_em
         if state.current_player is not None:
             state.current_player.recursos.atualizar_recursos(state.recursos_pendentes)
         _marcar_partida_pronta()

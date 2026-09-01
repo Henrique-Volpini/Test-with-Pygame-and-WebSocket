@@ -91,10 +91,14 @@ function normalizeView(view) {
     return "main";
 }
 
-function displayBounds() {
+function displayBounds(fullscreen = false) {
     const display = window.screen || {};
-    const availableWidth = window.screen ? window.screen.availWidth : window.innerWidth;
-    const availableHeight = window.screen ? window.screen.availHeight : window.innerHeight;
+    const availableWidth = window.screen
+        ? (fullscreen ? window.screen.width : window.screen.availWidth)
+        : window.innerWidth;
+    const availableHeight = window.screen
+        ? (fullscreen ? window.screen.height : window.screen.availHeight)
+        : window.innerHeight;
     return {
         x: Number.isFinite(Number(display.availLeft))
             ? Math.round(Number(display.availLeft))
@@ -105,6 +109,17 @@ function displayBounds() {
         width: integerOr(availableWidth, integerOr(window.innerWidth, 1280)),
         height: integerOr(availableHeight, integerOr(window.innerHeight, 960)),
     };
+}
+
+function resolutionFitsDisplay(resolution, fullscreen) {
+    if (!resolution) {
+        return false;
+    }
+    const bounds = displayBounds(fullscreen);
+    return (
+        resolution.width <= bounds.width &&
+        resolution.height <= bounds.height
+    );
 }
 
 export function createSettings({callBridge, onVisibilityChange, getCurrentView}) {
@@ -129,6 +144,7 @@ export function createSettings({callBridge, onVisibilityChange, getCurrentView})
         inertRecords: [],
         operationRevision: 0,
         applied: {...DEFAULT_SETTINGS},
+        resolutions: [],
     };
 
     function listen(target, type, listener, options) {
@@ -200,16 +216,28 @@ export function createSettings({callBridge, onVisibilityChange, getCurrentView})
         }
     }
 
-    function chooseResolution(width, height) {
+    function chooseResolution(width, height, {fitMode = null} = {}) {
         const key = resolutionKey(width, height);
         const exact = [...resolutionSelect.options].find((option) => option.value === key);
-        if (exact) {
-            exact.disabled = false;
+        const exactResolution = exact ? parseResolution(exact.value) : null;
+        if (
+            exact &&
+            !exact.disabled &&
+            (fitMode === null || resolutionFitsDisplay(exactResolution, fitMode))
+        ) {
             resolutionSelect.value = exact.value;
             return;
         }
 
-        const enabledOptions = [...resolutionSelect.options].filter((option) => !option.disabled);
+        const enabledOptions = [...resolutionSelect.options].filter((option) => {
+            if (option.disabled) {
+                return false;
+            }
+            return (
+                fitMode === null ||
+                resolutionFitsDisplay(parseResolution(option.value), fitMode)
+            );
+        });
         const options = enabledOptions.length > 0
             ? enabledOptions
             : [...resolutionSelect.options];
@@ -231,17 +259,24 @@ export function createSettings({callBridge, onVisibilityChange, getCurrentView})
         }
     }
 
-    function updateAvailableResolutions(entries, activeWidth, activeHeight) {
+    function updateAvailableResolutions(
+        entries,
+        activeWidth,
+        activeHeight,
+        fullscreen,
+    ) {
         if (!Array.isArray(entries) || entries.length === 0) {
             return;
         }
 
         const availableByKey = new Map();
+        const normalizedEntries = [];
         for (const entry of entries) {
             const normalized = normalizeResolutionEntry(entry);
             if (!normalized) {
                 continue;
             }
+            normalizedEntries.push(normalized);
             availableByKey.set(
                 resolutionKey(normalized.width, normalized.height),
                 normalized.available,
@@ -250,9 +285,12 @@ export function createSettings({callBridge, onVisibilityChange, getCurrentView})
         if (availableByKey.size === 0) {
             return;
         }
+        state.resolutions = normalizedEntries;
 
         const activeKey = resolutionKey(activeWidth, activeHeight);
-        const bounds = displayBounds();
+        const bounds = displayBounds(fullscreen);
+        const fullscreenBounds = fullscreen ? bounds : displayBounds(true);
+        const preserveActive = fullscreen === state.applied.fullscreen;
         for (const option of resolutionSelect.options) {
             const parsed = parseResolution(option.value);
             const fitsDisplay = Boolean(
@@ -260,10 +298,27 @@ export function createSettings({callBridge, onVisibilityChange, getCurrentView})
                 parsed.width <= bounds.width &&
                 parsed.height <= bounds.height
             );
-            option.disabled = (
-                option.value !== activeKey &&
-                (availableByKey.get(option.value) !== true || !fitsDisplay)
+            const fitsFullscreen = Boolean(
+                parsed &&
+                parsed.width <= fullscreenBounds.width &&
+                parsed.height <= fullscreenBounds.height
             );
+            option.disabled = (
+                !(preserveActive && option.value === activeKey) &&
+                (
+                    availableByKey.get(option.value) !== true ||
+                    (!fitsDisplay && !fitsFullscreen)
+                )
+            );
+        }
+
+        const selectedOption = resolutionSelect.selectedOptions[0];
+        if (selectedOption?.disabled) {
+            const selected = parseResolution(selectedOption.value) || {
+                width: activeWidth,
+                height: activeHeight,
+            };
+            chooseResolution(selected.width, selected.height);
         }
     }
 
@@ -306,11 +361,16 @@ export function createSettings({callBridge, onVisibilityChange, getCurrentView})
             ? settings.fullscreen
             : state.applied.fullscreen;
 
-        updateAvailableResolutions(settings.resolutions, width, height);
         state.applied = {width, height, fullscreen};
-        chooseResolution(width, height);
         windowedInput.checked = !fullscreen;
         fullscreenInput.checked = fullscreen;
+        updateAvailableResolutions(
+            settings.resolutions,
+            width,
+            height,
+            fullscreen,
+        );
+        chooseResolution(width, height);
         state.dirty = false;
         applyButton.classList.remove("has-pending-settings");
         applyButton.disabled = true;
@@ -441,7 +501,7 @@ export function createSettings({callBridge, onVisibilityChange, getCurrentView})
             draft.width,
             draft.height,
             draft.fullscreen,
-            displayBounds(),
+            displayBounds(draft.fullscreen),
         );
         if (state.disposed || revision !== state.operationRevision) {
             return;
@@ -469,7 +529,10 @@ export function createSettings({callBridge, onVisibilityChange, getCurrentView})
         if (state.visible) {
             setStatus("Alternando o modo de exibição...");
         }
-        const result = await callBridge("toggle_fullscreen", displayBounds());
+        const result = await callBridge(
+            "toggle_fullscreen",
+            displayBounds(!state.applied.fullscreen),
+        );
         if (state.disposed || revision !== state.operationRevision) {
             return;
         }
@@ -565,9 +628,56 @@ export function createSettings({callBridge, onVisibilityChange, getCurrentView})
     listen(document, "keydown", onOpenKeydownCapture, true);
     listen(document, "keydown", onGlobalKeydown);
     listen(overlay, "keydown", (event) => event.stopPropagation());
-    listen(resolutionSelect, "change", () => updateDirtyState());
-    listen(windowedInput, "change", () => updateDirtyState());
-    listen(fullscreenInput, "change", () => updateDirtyState());
+    listen(resolutionSelect, "change", () => {
+        const selected = parseResolution(resolutionSelect.value);
+        const requiresFullscreen = Boolean(
+            selected &&
+            !fullscreenInput.checked &&
+            !resolutionFitsDisplay(selected, false) &&
+            resolutionFitsDisplay(selected, true)
+        );
+        if (requiresFullscreen) {
+            windowedInput.checked = false;
+            fullscreenInput.checked = true;
+            updateAvailableResolutions(
+                state.resolutions,
+                state.applied.width,
+                state.applied.height,
+                true,
+            );
+        }
+        updateDirtyState({announce: !requiresFullscreen});
+        if (requiresFullscreen) {
+            setStatus("Tela cheia selecionada automaticamente para esta resolução.");
+        }
+    });
+    const onDisplayModeChange = () => {
+        let adjustedResolution = false;
+        const selected = parseResolution(resolutionSelect.value);
+        if (
+            windowedInput.checked &&
+            selected &&
+            !resolutionFitsDisplay(selected, false)
+        ) {
+            chooseResolution(selected.width, selected.height, {fitMode: false});
+            adjustedResolution = resolutionSelect.value !== resolutionKey(
+                selected.width,
+                selected.height,
+            );
+        }
+        updateAvailableResolutions(
+            state.resolutions,
+            state.applied.width,
+            state.applied.height,
+            fullscreenInput.checked,
+        );
+        updateDirtyState({announce: !adjustedResolution});
+        if (adjustedResolution) {
+            setStatus("Resolução ajustada para caber no modo janela.");
+        }
+    };
+    listen(windowedInput, "change", onDisplayModeChange);
+    listen(fullscreenInput, "change", onDisplayModeChange);
     disposers.push(bindPrimaryAction(closeButton, close));
     disposers.push(bindPrimaryAction(backdrop, close));
     disposers.push(bindPrimaryAction(applyButton, () => {

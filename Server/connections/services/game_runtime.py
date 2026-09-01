@@ -1,3 +1,4 @@
+import core.game_clock as game_clock
 import core.regras_tiles as regras_tiles
 from core.state import state
 
@@ -30,10 +31,18 @@ def process_game_action(data: dict, player_id: str):
 
 
 def build_update(player_id, include_matrix=True):
-    return {
+    jogador = state.players[player_id]
+    update = {
         "tipo": "resposta",
         "fase": state.phase,
         "world_revision": state.world_revision,
         "matriz": state.matriz_dict if include_matrix else None,
-        "recursos": state.players[player_id].recursos.to_dict(),
+        "recursos": jogador.recursos.to_dict(),
+        "posicao_inicial": (
+            list(jogador.posicao_inicial)
+            if jogador.posicao_inicial is not None
+            else None
+        ),
     }
+    update.update(game_clock.snapshot())
+    return update

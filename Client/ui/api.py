@@ -1,3 +1,4 @@
+import time
 from threading import Lock
 
 from connection import local_server, net
@@ -105,6 +106,21 @@ class GameApi:
             else:
                 screen = "main"
 
+            tick_elapsed_ms = 0
+            if em_partida and state.tick_snapshot_monotonic is not None:
+                tick_elapsed_ms = max(
+                    0,
+                    int(
+                        (time.monotonic() - state.tick_snapshot_monotonic)
+                        * 1000
+                    ),
+                )
+            match_time_ms = state.match_time_ms + tick_elapsed_ms
+            tick_remaining_ms = max(
+                0,
+                state.tick_remaining_ms - tick_elapsed_ms,
+            )
+
             return {
                 "screen": screen,
                 "session_mode": state.session_mode,
@@ -117,6 +133,15 @@ class GameApi:
                 "width": state.largura_grid,
                 "height": state.altura_grid,
                 "resources": resources,
+                "spawn_position": (
+                    list(state.spawn_position)
+                    if state.spawn_position is not None
+                    else None
+                ),
+                "match_time_ms": match_time_ms,
+                "tick_interval_ms": state.tick_interval_ms,
+                "tick_number": state.tick_number,
+                "tick_remaining_ms": tick_remaining_ms,
                 "lobby": lobby,
                 "connection": {
                     "connected": state.servidor_conectado,

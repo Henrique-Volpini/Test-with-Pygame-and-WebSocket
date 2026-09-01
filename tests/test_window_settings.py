@@ -112,6 +112,58 @@ class WindowSettingsTests(unittest.TestCase):
             list(WINDOW_RESOLUTIONS),
         )
 
+    def test_supported_resolutions_include_common_widescreen_presets(self):
+        self.assertEqual(
+            WINDOW_RESOLUTIONS,
+            (
+                (960, 720),
+                (1280, 720),
+                (1280, 960),
+                (1366, 768),
+                (1536, 864),
+                (1600, 900),
+                (1920, 1080),
+            ),
+        )
+
+    def test_full_hd_can_be_applied_when_it_fits_the_reported_display(self):
+        window = FakeWindow(width=1280, height=960, x=100, y=50)
+        result = self.create_api(window).apply_window_settings(
+            1920,
+            1080,
+            True,
+            {"x": 0, "y": 0, "width": 1920, "height": 1080},
+        )
+
+        self.assertTrue(result["ok"])
+        self.assertEqual((result["width"], result["height"]), (1920, 1080))
+        self.assertTrue(result["fullscreen"])
+        self.assertEqual(
+            window.calls,
+            [
+                ("restore",),
+                ("resize", 1920, 1080),
+                ("move", 0, 0),
+                ("toggle_fullscreen",),
+            ],
+        )
+
+    def test_full_hd_window_rejects_a_smaller_work_area(self):
+        window = FakeWindow()
+        result = self.create_api(window).apply_window_settings(
+            1920,
+            1080,
+            False,
+            {"x": 0, "y": 0, "width": 1920, "height": 1032},
+        )
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(window.calls, [])
+        self.assertEqual(
+            (result["width"], result["height"], result["fullscreen"]),
+            (1280, 960, False),
+        )
+
     def test_apply_exits_fullscreen_resizes_centers_and_reenters_in_order(self):
         window = FakeWindow(x=25, y=30)
         api = self.create_api(window)

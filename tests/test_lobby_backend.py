@@ -209,6 +209,10 @@ class LobbyBackendTests(unittest.TestCase):
                 "host": player.Player("host", None, join_order=1, is_host=True),
                 "guest": player.Player("guest", None, join_order=2, is_host=False),
             }
+            state.active_conn_by_player_id = {
+                "host": object(),
+                "guest": object(),
+            }
             state.world_generating = False
             state.world_error = None
             state.lobby_revision = 0
@@ -228,7 +232,7 @@ class LobbyBackendTests(unittest.TestCase):
                     {
                         "tipo": "configurar_lobby",
                         "seed": 99,
-                        "tamanho": 8,
+                        "tamanho": 15,
                         "parametros_mapa": {
                             "land": 90,
                             "mountains": 10,
@@ -262,7 +266,7 @@ class LobbyBackendTests(unittest.TestCase):
                     {
                         "tipo": "configurar_lobby",
                         "seed": 99,
-                        "tamanho": 8,
+                        "tamanho": 15,
                         "parametros_mapa": {
                             "land": 90,
                             "mountains": 10,
@@ -275,7 +279,7 @@ class LobbyBackendTests(unittest.TestCase):
                 assert response is None
                 assert phase == "lobby"
                 assert state.world_seed == 99
-                assert state.largura_grid == state.altura_grid == 8
+                assert state.largura_grid == state.altura_grid == 15
                 assert state.world_params == {
                     "land": 90,
                     "mountains": 10,
@@ -292,7 +296,24 @@ class LobbyBackendTests(unittest.TestCase):
                 assert response is None
                 assert phase == "game"
                 assert state.phase == "game"
-                assert state.matriz_dict is preview_before_start
+                assert state.matriz_dict is not preview_before_start
+                assert sum(
+                    cell["tile"] == "town_center"
+                    for row in state.matriz_dict
+                    for cell in row
+                ) == 2
+                for player_id in ("host", "guest"):
+                    center_x, center_y = state.players[player_id].posicao_inicial
+                    assert all(
+                        preview_before_start[y][x]["tile"] == "grass"
+                        for y in range(center_y - 2, center_y + 3)
+                        for x in range(center_x - 2, center_x + 3)
+                    )
+                    assert sum(
+                        state.matriz_dict[y][x]["dono"] == player_id
+                        for y in range(center_y - 1, center_y + 2)
+                        for x in range(center_x - 1, center_x + 2)
+                    ) == 9
                 assert broadcasts == ["lobby"]
 
             asyncio.run(exercise())
@@ -379,9 +400,12 @@ class LobbyBackendTests(unittest.TestCase):
                 "world_revision": 4,
                 "matriz": None,
                 "recursos": {"gold": 500, "wood": 500, "food": 500},
+                "posicao_inicial": [1, 1],
             })
             assert state.estado_jogo == "partida"
             assert state.partida_criada is True
+            assert state.spawn_position == (1, 1)
+            assert api.get_snapshot(-1, -1)["spawn_position"] == [1, 1]
             """,
         )
 
@@ -555,7 +579,7 @@ class LobbyBackendTests(unittest.TestCase):
                                 {
                                     "tipo": "configurar_lobby",
                                     "seed": 777,
-                                    "tamanho": 9,
+                                    "tamanho": 15,
                                     "parametros_mapa": {
                                         "land": 75,
                                         "mountains": 80,
@@ -595,6 +619,33 @@ class LobbyBackendTests(unittest.TestCase):
                         guest_game = await receive(guest)
                         self.assertEqual(host_game["fase"], "game")
                         self.assertEqual(guest_game["fase"], "game")
+                        for snapshot, owner in (
+                            (host_game, host_player_id),
+                            (guest_game, guest_player_id),
+                        ):
+                            center_x, center_y = snapshot["posicao_inicial"]
+                            self.assertTrue(
+                                all(
+                                    host_generated["matriz"][y][x]["tile"]
+                                    == "grass"
+                                    for y in range(center_y - 2, center_y + 3)
+                                    for x in range(center_x - 2, center_x + 3)
+                                )
+                            )
+                            owned_tiles = [
+                                cell
+                                for row in snapshot["matriz"]
+                                for cell in row
+                                if cell["dono"] == owner
+                            ]
+                            self.assertEqual(len(owned_tiles), 9)
+                            self.assertEqual(
+                                sum(
+                                    cell["tile"] == "town_center"
+                                    for cell in owned_tiles
+                                ),
+                                1,
+                            )
 
                         await guest.send(
                             json.dumps(

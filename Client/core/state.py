@@ -21,6 +21,12 @@ class GameState:
         self.recursos_pendentes = None
         self.partida_criada = False
         self.server_phase = None
+        self.spawn_position = None
+        self.match_time_ms = 0
+        self.tick_interval_ms = 10_000
+        self.tick_number = 0
+        self.tick_remaining_ms = 10_000
+        self.tick_snapshot_monotonic = None
 
         # Lobby recebido do servidor.
         self.lobby_revision = 0
@@ -70,6 +76,12 @@ class GameState:
             self.recursos_pendentes = None
             self.partida_criada = False
             self.server_phase = None
+            self.spawn_position = None
+            self.match_time_ms = 0
+            self.tick_interval_ms = 10_000
+            self.tick_number = 0
+            self.tick_remaining_ms = 10_000
+            self.tick_snapshot_monotonic = None
 
             self.lobby_revision = 0
             self.lobby_world_revision = -1
@@ -110,6 +122,12 @@ class GameState:
             self.recursos_pendentes = None
             self.partida_criada = False
             self.server_phase = None
+            self.spawn_position = None
+            self.match_time_ms = 0
+            self.tick_interval_ms = 10_000
+            self.tick_number = 0
+            self.tick_remaining_ms = 10_000
+            self.tick_snapshot_monotonic = None
 
             self.matriz = []
             self.matriz_render = []

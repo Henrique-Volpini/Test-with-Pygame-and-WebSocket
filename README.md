@@ -44,7 +44,9 @@ O `Client/index.html` é apenas o ponto de entrada da interface. Cada parte do j
    prontos. O botão fica bloqueado enquanto houver alterações de mapa ainda não
    aplicadas.
 
-Somente o anfitrião pode alterar o mapa ou iniciar a partida. A prévia exibida no lobby é o mesmo mundo usado no jogo. A mesma seed, tamanho e parâmetros reproduz o mesmo mapa.
+Somente o anfitrião pode alterar o mapa ou iniciar a partida. A prévia exibida no lobby é o mundo-base usado no jogo. Ao iniciar, o servidor procura regiões naturais de grama `5 × 5` próximas de lados opostos da borda e converte somente o centro `3 × 3` de cada região na cidade principal gratuita do jogador; o restante do terreno não é alterado. A câmera abre na cidade do próprio jogador. A mesma seed, tamanho e parâmetros reproduz o mesmo mundo-base.
+
+O mapa precisa ter regiões naturais de grama suficientes para separar todas as cidades. Se não houver espaço para a quantidade de jogadores, a partida permanece no lobby e o servidor pede outro mapa ou menos jogadores.
 
 O cliente inicia `Server/main.py` automaticamente. Mundos grandes demoram mais para serem gerados; um mundo `200 × 200` pode levar vários segundos antes de a partida abrir.
 
@@ -74,12 +76,19 @@ O código de nove caracteres muda sempre que uma nova sala é criada. Ele carreg
 - `W`, `A`, `S`, `D`: mover a câmera.
 - Roda do mouse: controlar o zoom.
 - Clique em um tile: selecionar o tile ou abrir o menu de construção.
+- Aba **Construções**: abrir ou recolher o painel pela borda inferior.
 - `Esc`: abrir ou fechar as configurações no menu, na sala e durante a partida.
 - `F11`: alternar a tela cheia.
 
+Durante a partida, a barra superior mostra o tempo restante para o próximo
+ciclo de `10` segundos. Produção, movimentação e demais sistemas de turno devem
+usar esse mesmo tick autoritativo do servidor.
+
 As **Configurações** também podem ser abertas pelo botão do menu principal. O
 painel permite escolher uma resolução predefinida, alternar entre janela e tela
-cheia ou sair do jogo. A seção de áudio já está reservada para uma implementação
+cheia ou sair do jogo. Há formatos `4:3` e panorâmicos, incluindo
+`1366 × 768`, `1536 × 864`, `1600 × 900` e `1920 × 1080`; a interface e o
+canvas aproveitam a largura disponível sem distorcer o jogo. A seção de áudio já está reservada para uma implementação
 futura, mas permanece desativada enquanto o projeto não possui som.
 
 ## Executar apenas o servidor
