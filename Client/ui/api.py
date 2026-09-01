@@ -138,6 +138,24 @@ class GameApi:
                     if state.spawn_position is not None
                     else None
                 ),
+                "player_id": state.player_id,
+                "troops": [dict(troop) for troop in state.troops],
+                "command_buildings": [
+                    {
+                        **building,
+                        "queue": [
+                            dict(command)
+                            for command in building["queue"]
+                        ],
+                    }
+                    for building in state.command_buildings
+                ],
+                "army": dict(state.army),
+                "last_action_error": (
+                    dict(state.last_action_error)
+                    if state.last_action_error is not None
+                    else None
+                ),
                 "match_time_ms": match_time_ms,
                 "tick_interval_ms": state.tick_interval_ms,
                 "tick_number": state.tick_number,
@@ -191,6 +209,18 @@ class GameApi:
             if self._shut_down:
                 return {"ok": False}
             return session.construir(x, y, tile_name)
+
+    def command_troop(self, unit_id, x, y):
+        with self._actions:
+            if self._shut_down:
+                return {"ok": False}
+            return session.ordenar_tropa(unit_id, x, y)
+
+    def recruit_troop(self, x, y):
+        with self._actions:
+            if self._shut_down:
+                return {"ok": False}
+            return session.recrutar_tropa(x, y)
 
     @staticmethod
     def _window_settings_response(ok=True, error=None):

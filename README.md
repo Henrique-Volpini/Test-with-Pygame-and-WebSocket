@@ -75,7 +75,9 @@ O código de nove caracteres muda sempre que uma nova sala é criada. Ele carreg
 
 - `W`, `A`, `S`, `D`: mover a câmera.
 - Roda do mouse: controlar o zoom.
-- Clique em um tile: selecionar o tile ou abrir o menu de construção.
+- Clique em uma Guarda, Dock ou Centro da Cidade: abrir o menu próprio da
+  construção sobre o painel inferior.
+- Clique em outro tile: selecionar o tile ou abrir o menu de construção.
 - Aba **Construções**: abrir ou recolher o painel pela borda inferior.
 - `Esc`: abrir ou fechar as configurações no menu, na sala e durante a partida.
 - `F11`: alternar a tela cheia.
@@ -83,6 +85,63 @@ O código de nove caracteres muda sempre que uma nova sala é criada. Ele carreg
 Durante a partida, a barra superior mostra o tempo restante para o próximo
 ciclo de `10` segundos. Produção, movimentação e demais sistemas de turno devem
 usar esse mesmo tick autoritativo do servidor.
+
+## Tropas e combate
+
+- A **Guarda** custa `120 ouro / 180 madeira / 80 comida` e só pode substituir
+  um tile de Cidade do próprio jogador.
+- O **Dock** custa `100 ouro / 220 madeira / 40 comida` e só pode substituir
+  água costeira livre, ortogonalmente ao lado de terra. Um Dock não prolonga a
+  costa para permitir construções em cadeia no oceano.
+- No menu próprio da **Guarda**, uma tropa terrestre pode ser encomendada por
+  `75` de ouro. A ordem espera o ciclo global atual terminar e então leva `2`
+  ciclos completos (`20` segundos) para ficar pronta, até o limite de `24`
+  tropas terrestres por jogador.
+- No menu próprio do **Dock**, um barco pode ser encomendado por `120` de ouro.
+  Depois da mesma espera pelo próximo ciclo global, ele leva `3` ciclos
+  completos (`30` segundos) para ficar pronto, até o limite de `12` barcos por
+  jogador. O próprio Dock continua sendo uma posição aquática.
+- Cada Guarda ou Dock mantém uma fila serial de até `5` ordens. O ouro é
+  descontado ao confirmar a ordem; unidades prontas aguardam sem novo custo se
+  não houver um tile livre para surgirem. O Centro da Cidade mostra o resumo e
+  os limites do exército, mas não recruta.
+- Clique em uma tropa própria para selecioná-la e use o botão direito em um
+  destino. Tropas terrestres não atravessam água ou montanhas; barcos navegam
+  somente por água e docks.
+- Tropas sem ordem detectam inimigos próximos. Uma ordem explícita sempre tem
+  prioridade, e movimento, ataque, dano e morte só são resolvidos no tick.
+- Ao chegar um novo tick, o cliente interpola o caminho percorrido e desenha
+  poeira para tropas terrestres ou esteira para barcos. Para isso, compara os
+  IDs e as posições dos dois snapshots autoritativos consecutivos; a posição
+  final continua sendo sempre a enviada pelo servidor.
+- Não é possível construir no tile de uma tropa nem na faixa imediata ao redor
+  de uma tropa inimiga. Criar água custa `40` de ouro, evitando que o terreno
+  gratuito substitua o combate e aprisione exércitos instantaneamente.
+- Tropas terrestres têm `12 HP`, movem `2` tiles, causam `4` de dano a alcance
+  `1` e detectam alvos a `6` tiles. Barcos têm `22 HP`, movem `3` tiles, causam
+  `6` de dano a alcance `2` e detectam alvos a `8` tiles. O dano é simultâneo,
+  portanto duas unidades podem destruir uma à outra no mesmo ciclo.
+
+O comando de rede de uma tropa usa este formato:
+
+```json
+{"tipo":"ordenar_tropa","unit_id":"troop-1","x":12,"y":8}
+```
+
+O recrutamento manual usa a coordenada da construção:
+
+```json
+{"tipo":"recrutar_tropa","x":8,"y":14}
+```
+
+Nos snapshots, cada item da fila informa `remaining_ticks`, `total_ticks` e
+`waiting_for_start`. Enquanto `waiting_for_start` for `true`, a ordem está
+aguardando o ciclo global atual terminar e ainda não consumiu nenhum tick de
+produção.
+
+Cada snapshot contém `player_id` e uma lista `troops`. Uma unidade é enviada
+como `{id, owner, is_mine, kind, x, y, hp, max_hp, target, status}`; `kind` é
+`land` ou `boat`, e `target` é uma coordenada `[x, y]` ou `null`.
 
 As **Configurações** também podem ser abertas pelo botão do menu principal. O
 painel permite escolher uma resolução predefinida, alternar entre janela e tela

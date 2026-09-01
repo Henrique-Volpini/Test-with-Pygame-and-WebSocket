@@ -9,8 +9,9 @@ from connections.transport.websocket_manager import broadcast_game
 
 def process_due_ticks(now=None):
     ticks_vencidos = game_clock.advance(now)
-    for _ in range(ticks_vencidos):
-        evento_10_segundos.evento_10_segundos()
+    primeiro_tick = state.tick_numero - ticks_vencidos + 1
+    for tick_number in range(primeiro_tick, state.tick_numero + 1):
+        evento_10_segundos.evento_10_segundos(tick_number)
     return ticks_vencidos
 
 

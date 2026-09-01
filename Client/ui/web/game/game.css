@@ -358,6 +358,133 @@
     transition: transform 100ms linear;
 }
 
+#game-screen.has-selected-troop #world-canvas {
+    cursor: crosshair;
+}
+
+.troop-selection {
+    --troop-health: 1;
+    position: absolute;
+    z-index: 3;
+    top: 104px;
+    right: 0;
+    width: 292px;
+    min-height: 146px;
+    padding: 15px 21px 14px 17px;
+    color: #d9c8a5;
+    border: 2px solid var(--gold-dark);
+    border-right: 0;
+    background:
+        linear-gradient(120deg, rgba(223, 181, 94, 0.08), transparent 56%),
+        linear-gradient(180deg, rgba(53, 38, 27, 0.975), rgba(22, 16, 12, 0.99));
+    box-shadow:
+        0 0 0 2px var(--ink),
+        0 0 0 4px rgba(199, 150, 67, 0.5),
+        -13px 12px 28px rgba(7, 6, 4, 0.42),
+        inset 0 1px rgba(255, 231, 174, 0.1);
+    pointer-events: none;
+    animation: troop-selection-arrive 180ms ease-out both;
+}
+
+.troop-selection[hidden] {
+    display: none;
+}
+
+.troop-selection::before {
+    position: absolute;
+    inset: 6px 0 6px 6px;
+    border: 1px solid rgba(214, 169, 91, 0.22);
+    border-right: 0;
+    content: "";
+}
+
+.troop-selection-heading,
+.troop-health-row,
+.troop-health,
+.troop-selection p,
+.troop-selection small {
+    position: relative;
+    z-index: 1;
+}
+
+.troop-selection-heading {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10px;
+}
+
+.troop-selection-kicker {
+    color: var(--gold-bright);
+    font-family: "Courier New", monospace;
+    font-size: 8px;
+    font-weight: 700;
+    line-height: 12px;
+    letter-spacing: 1.7px;
+}
+
+.troop-selection-heading strong {
+    color: #fff0cb;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 20px;
+    line-height: 25px;
+    text-shadow: 0 2px #120c08;
+}
+
+.troop-health-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    font-family: "Courier New", monospace;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.troop-health-row > span {
+    color: #968160;
+}
+
+.troop-health-row strong {
+    color: #cce394;
+    font-size: 10px;
+}
+
+.troop-health {
+    height: 8px;
+    padding: 1px;
+    overflow: hidden;
+    border: 1px solid rgba(205, 166, 84, 0.45);
+    background: rgba(10, 7, 5, 0.7);
+}
+
+.troop-health > span {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #668d45, #bad778);
+    box-shadow: 0 0 8px rgba(171, 209, 107, 0.3);
+    transform: scaleX(clamp(0, var(--troop-health), 1));
+    transform-origin: left center;
+    transition: transform 150ms ease;
+}
+
+.troop-selection p {
+    margin: 8px 0 2px;
+    color: #e0c987;
+    font-family: "Courier New", monospace;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 14px;
+}
+
+.troop-selection small {
+    display: block;
+    color: #9d8b6e;
+    font-size: 9px;
+    line-height: 13px;
+}
+
 #build-menu {
     --build-handle-height: 42px;
     position: absolute;
@@ -458,10 +585,471 @@
         inset 0 1px rgba(255, 231, 174, 0.12),
         inset 0 -10px 24px rgba(0, 0, 0, 0.2);
     pointer-events: auto;
+    opacity: 1;
+    transform: translateX(0);
+    visibility: visible;
+    transition:
+        opacity 180ms ease,
+        transform 240ms cubic-bezier(0.22, 0.78, 0.2, 1),
+        visibility 0s linear;
 }
 
-#build-menu:not(.is-open) .build-panel {
+#build-menu:not(.is-open) .build-panel,
+#build-menu:not(.is-open) .command-panel {
     pointer-events: none;
+}
+
+#build-menu.is-command .build-panel {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-28%);
+    visibility: hidden;
+    transition-delay: 0s, 0s, 240ms;
+}
+
+.command-panel {
+    position: absolute;
+    top: var(--build-handle-height);
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+    padding: 12px 18px;
+    overflow: hidden;
+    color: var(--parchment);
+    border: 2px solid var(--gold-dark);
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0 1px, transparent 1px 13px),
+        linear-gradient(225deg, rgba(0, 0, 0, 0.08) 0 1px, transparent 1px 17px),
+        linear-gradient(180deg, rgba(48, 37, 27, 0.99), rgba(20, 16, 12, 0.995));
+    background-size: 13px 13px, 17px 17px, auto;
+    box-shadow:
+        0 0 0 2px var(--ink),
+        0 0 0 5px rgba(199, 150, 67, 0.65),
+        0 0 0 9px rgba(22, 15, 11, 0.86),
+        inset 0 1px rgba(255, 231, 174, 0.12),
+        inset 0 -10px 24px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(100%);
+    visibility: hidden;
+    transition:
+        opacity 180ms ease,
+        transform 240ms cubic-bezier(0.22, 0.78, 0.2, 1),
+        visibility 0s linear 240ms;
+}
+
+#build-menu.is-command .command-panel {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+    visibility: visible;
+    transition-delay: 0s;
+}
+
+.command-panel::before {
+    position: absolute;
+    inset: 7px;
+    border: 1px solid rgba(214, 169, 91, 0.23);
+    content: "";
+    pointer-events: none;
+}
+
+.command-panel-layout {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 270px minmax(0, 1fr) 246px;
+    gap: 16px;
+    width: 100%;
+    height: 100%;
+}
+
+.command-building-identity,
+.command-queue-section,
+.command-recruit-section {
+    min-width: 0;
+}
+
+.command-building-identity {
+    position: relative;
+    display: grid;
+    grid-template-columns: 62px minmax(0, 1fr);
+    grid-template-rows: 28px 50px 42px;
+    align-content: center;
+    padding-right: 15px;
+    border-right: 1px solid rgba(199, 150, 67, 0.3);
+}
+
+.command-panel-back {
+    grid-column: 1 / -1;
+    justify-self: start;
+    height: 23px;
+    padding: 0 9px;
+    color: #cbb784;
+    border: 1px solid rgba(199, 150, 67, 0.4);
+    background: rgba(10, 8, 6, 0.38);
+    font-family: "Courier New", monospace;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.command-panel-back:hover,
+.command-panel-back:focus-visible {
+    color: #fff0bd;
+    border-color: var(--gold-bright);
+}
+
+.command-panel-back > span {
+    margin-right: 4px;
+    font-size: 15px;
+    line-height: 1;
+}
+
+.command-building-heading {
+    display: flex;
+    grid-column: 1 / -1;
+    min-width: 0;
+    flex-direction: column;
+    justify-content: center;
+}
+
+#command-building-kicker,
+.command-recruit-kicker,
+.command-section-heading > div > span {
+    color: var(--gold-bright);
+    font-family: "Courier New", monospace;
+    font-size: 8px;
+    font-weight: 700;
+    line-height: 11px;
+    letter-spacing: 1.5px;
+}
+
+#command-building-title {
+    overflow: hidden;
+    color: #fff0cb;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 20px;
+    line-height: 24px;
+    text-overflow: ellipsis;
+    text-shadow: 0 2px #120c08;
+    white-space: nowrap;
+}
+
+.command-building-owner-row {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    align-items: center;
+    gap: 7px;
+}
+
+#command-building-icon {
+    display: block;
+    width: 38px;
+    height: 38px;
+    border: 1px solid rgba(199, 150, 67, 0.35);
+    background: rgba(9, 8, 6, 0.45);
+    image-rendering: pixelated;
+}
+
+#command-building-owner {
+    color: #bca982;
+    font-family: "Courier New", monospace;
+    font-size: 8px;
+    font-weight: 700;
+    line-height: 12px;
+    text-transform: uppercase;
+}
+
+.command-panel.is-enemy #command-building-owner {
+    color: #e4826d;
+}
+
+.command-army-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: center;
+    gap: 5px;
+}
+
+.command-army-summary > span,
+.command-recruit-details > span {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    padding: 5px 6px;
+    border: 1px solid rgba(199, 150, 67, 0.25);
+    background: rgba(10, 8, 6, 0.3);
+}
+
+.command-army-summary small,
+.command-recruit-details small {
+    color: #8e7c61;
+    font-family: "Courier New", monospace;
+    font-size: 7px;
+    font-weight: 700;
+    line-height: 9px;
+    letter-spacing: 0.7px;
+}
+
+.command-army-summary strong,
+.command-recruit-details strong {
+    overflow: hidden;
+    color: #d9c586;
+    font-family: "Courier New", monospace;
+    font-size: 11px;
+    line-height: 14px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#command-recruit-time {
+    line-height: 12px;
+    white-space: normal;
+}
+
+.command-queue-section {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.command-section-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    height: 30px;
+    margin-bottom: 5px;
+}
+
+.command-section-heading > div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+}
+
+.command-section-heading strong {
+    color: #ead9b1;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 15px;
+    line-height: 18px;
+}
+
+#command-queue-count {
+    color: #a99368;
+    font-family: "Courier New", monospace;
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.command-queue {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+    height: 95px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.command-queue-slot {
+    --queue-progress: 0;
+    position: relative;
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 7px 7px 6px;
+    overflow: hidden;
+    border: 1px solid rgba(199, 150, 67, 0.32);
+    background:
+        linear-gradient(135deg, rgba(221, 179, 91, 0.06), transparent 54%),
+        rgba(10, 8, 6, 0.42);
+}
+
+.command-queue-slot.is-empty {
+    align-items: center;
+    justify-content: center;
+    color: #625845;
+    border-style: dashed;
+    font-family: "Courier New", monospace;
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+}
+
+.command-queue-position {
+    color: #8f7b58;
+    font-family: "Courier New", monospace;
+    font-size: 7px;
+    font-weight: 700;
+}
+
+.command-queue-unit {
+    overflow: hidden;
+    color: #eed8a0;
+    font-family: "Courier New", monospace;
+    font-size: 8px;
+    font-weight: 700;
+    line-height: 11px;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.command-queue-time {
+    overflow: hidden;
+    color: #aa9875;
+    font-size: 7.5px;
+    font-weight: 600;
+    line-height: 9px;
+    text-overflow: clip;
+    white-space: normal;
+}
+
+.command-queue-slot.is-waiting {
+    border-color: rgba(232, 193, 107, 0.62);
+    background:
+        linear-gradient(135deg, rgba(232, 193, 107, 0.13), transparent 64%),
+        rgba(10, 8, 6, 0.52);
+}
+
+.command-queue-slot.is-waiting .command-queue-time {
+    color: #e3c77f;
+}
+
+.command-queue-slot.is-active {
+    border-color: rgba(137, 190, 113, 0.62);
+    box-shadow: inset 0 0 12px rgba(104, 156, 80, 0.12);
+}
+
+.command-queue-slot.is-active .command-queue-time {
+    color: #c3d99f;
+}
+
+.command-queue-progress {
+    height: 5px;
+    padding: 1px;
+    overflow: hidden;
+    border: 1px solid rgba(199, 150, 67, 0.3);
+    background: rgba(5, 5, 4, 0.65);
+}
+
+.command-queue-progress > span {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #8f6430, #e0bd69);
+    transform: scaleX(clamp(0, var(--queue-progress), 1));
+    transform-origin: left center;
+}
+
+.command-queue-slot.is-blocked .command-queue-progress > span {
+    background: #9b5948;
+}
+
+.command-recruit-section {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-left: 15px;
+    border-left: 1px solid rgba(199, 150, 67, 0.3);
+}
+
+#command-recruit-kind {
+    overflow: hidden;
+    margin: 1px 0 6px;
+    color: #fff0cb;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 18px;
+    line-height: 22px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.command-recruit-details {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+    margin-bottom: 7px;
+}
+
+.command-recruit-button {
+    min-height: 32px;
+    padding: 6px 9px;
+    color: #24170e;
+    border: 1px solid #e2bd68;
+    background: linear-gradient(180deg, #e2bd68, #a97534);
+    box-shadow: 0 3px 0 #3a2414, inset 0 1px rgba(255, 246, 201, 0.45);
+    font-family: "Courier New", monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.command-recruit-button:hover:not(:disabled) {
+    filter: brightness(1.13);
+    transform: translateY(-1px);
+}
+
+.command-recruit-button:disabled {
+    color: #7b6b54;
+    border-color: #5e4c34;
+    background: #2c241b;
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+.command-recruit-button.is-pending {
+    color: #e1cb91;
+    background: #4d3a22;
+}
+
+#command-recruit-message {
+    min-height: 20px;
+    margin: 6px 0 0;
+    color: #a99879;
+    font-size: 8px;
+    line-height: 10px;
+}
+
+.command-recruit-section.is-unavailable #command-recruit-message {
+    color: #df806c;
+}
+
+.command-center-summary {
+    display: flex;
+    min-height: 95px;
+    align-items: center;
+    margin: 0;
+    padding: 15px 20px;
+    color: #d8c69e;
+    border: 1px solid rgba(199, 150, 67, 0.3);
+    background:
+        linear-gradient(105deg, rgba(199, 150, 67, 0.1), transparent 62%),
+        rgba(10, 8, 6, 0.35);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 14px;
+    line-height: 20px;
+}
+
+.command-center-summary[hidden],
+.command-army-summary[hidden],
+.command-queue[hidden],
+#command-queue-count[hidden],
+.command-recruit-section[hidden] {
+    display: none;
+}
+
+.command-panel.is-town-center .command-panel-layout {
+    grid-template-columns: 270px minmax(0, 1fr);
 }
 
 .build-panel::before {
@@ -533,7 +1121,7 @@
     position: relative;
     z-index: 1;
     display: grid;
-    grid-template-columns: repeat(10, minmax(0, 1fr));
+    grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: 8px;
     height: 96px;
 }
@@ -613,6 +1201,16 @@
 .build-button[data-tile="water"] {
     --tile-accent: #457a91;
     --tile-accent-bright: #7db8ce;
+}
+
+.build-button[data-tile="guard_house"] {
+    --tile-accent: #a44f3e;
+    --tile-accent-bright: #e48769;
+}
+
+.build-button[data-tile="dock"] {
+    --tile-accent: #467d8f;
+    --tile-accent-bright: #89c5d2;
 }
 
 .build-button:hover {
@@ -985,6 +1583,17 @@
     transform: translateX(40%);
 }
 
+@keyframes troop-selection-arrive {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
 @keyframes hud-arrive {
     from {
         opacity: 0;
@@ -1009,11 +1618,16 @@
 
 @media (prefers-reduced-motion: reduce) {
     #build-menu,
+    .build-panel,
+    .command-panel,
     .build-info,
     .build-button,
     .build-button::before,
     .build-panel-toggle-chevron,
-    .tick-progress::before {
+    .tick-progress::before,
+    .command-queue-progress > span,
+    .troop-selection,
+    .troop-health > span {
         animation: none;
         transition: none;
     }

@@ -40,6 +40,7 @@ class State:
             self.world_params,
         )
         self.world_revision = 0
+        self.terrain_revision = 0
 
         # Mundo
         self.matriz = None
@@ -67,6 +68,12 @@ class State:
         # Players
         self.players = {}
         self.next_player_order = 1
+
+        # Simulacao militar autoritativa. O cliente recebe apenas snapshots.
+        self.troops = {}
+        self.next_troop_id = 1
+        self.recruitment_queues = {}
+        self.next_recruitment_id = 1
 
         self.tempo_partida = 0
         self.partida_inicio_monotonic = None

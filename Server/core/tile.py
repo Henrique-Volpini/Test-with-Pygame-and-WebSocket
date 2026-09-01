@@ -116,10 +116,28 @@ class City(Tile):
         super().__init__()
         self.current_player = current_player
 
+class GuardHouse(Tile):
+    custo_gold = 120
+    custo_wood = 180
+    custo_food = 80
+
+    def __init__(self, current_player):
+        super().__init__()
+        self.current_player = current_player
+
 class Water(Tile):
-    custo_gold = 0
+    custo_gold = 40
     custo_wood = 0
     custo_food = 0
+
+    def __init__(self, current_player):
+        super().__init__()
+        self.current_player = current_player
+
+class Dock(Tile):
+    custo_gold = 100
+    custo_wood = 220
+    custo_food = 40
 
     def __init__(self, current_player):
         super().__init__()

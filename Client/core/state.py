@@ -7,6 +7,15 @@ from core.generation_settings import (
 from core.window_settings import DEFAULT_WINDOW_RESOLUTION
 
 
+def _empty_army():
+    return {
+        "land": 0,
+        "boat": 0,
+        "land_cap": 24,
+        "boat_cap": 12,
+    }
+
+
 class GameState:
     """Estado compartilhado entre a rede e a ponte da interface web."""
 
@@ -22,6 +31,11 @@ class GameState:
         self.partida_criada = False
         self.server_phase = None
         self.spawn_position = None
+        self.troops = []
+        self.command_buildings = []
+        self.army = _empty_army()
+        self.last_action_error = None
+        self.last_action_error_revision = 0
         self.match_time_ms = 0
         self.tick_interval_ms = 10_000
         self.tick_number = 0
@@ -77,6 +91,11 @@ class GameState:
             self.partida_criada = False
             self.server_phase = None
             self.spawn_position = None
+            self.troops = []
+            self.command_buildings = []
+            self.army = _empty_army()
+            self.last_action_error = None
+            self.last_action_error_revision = 0
             self.match_time_ms = 0
             self.tick_interval_ms = 10_000
             self.tick_number = 0
@@ -123,6 +142,11 @@ class GameState:
             self.partida_criada = False
             self.server_phase = None
             self.spawn_position = None
+            self.troops = []
+            self.command_buildings = []
+            self.army = _empty_army()
+            self.last_action_error = None
+            self.last_action_error_revision = 0
             self.match_time_ms = 0
             self.tick_interval_ms = 10_000
             self.tick_number = 0

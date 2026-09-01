@@ -91,6 +91,13 @@ def publicar_mundo(matriz, matriz_dict, largura, altura, seed, parametros=None):
         largura * altura,
         parametros,
     )
+    # Publicar outro mundo invalida coordenadas, caminhos e IDs militares do
+    # mundo anterior, inclusive durante regeneracoes no lobby.
+    state.troops = {}
+    state.next_troop_id = 1
+    state.recruitment_queues = {}
+    state.next_recruitment_id = 1
+    state.terrain_revision += 1
     state.world_revision += 1
 
 

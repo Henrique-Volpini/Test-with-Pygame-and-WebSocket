@@ -10,7 +10,9 @@ TILES_POR_NOME = {
     "mine": tile.Mine,
     "town_center": tile.TownCenter,
     "city": tile.City,
+    "guard_house": tile.GuardHouse,
     "water": tile.Water,
+    "dock": tile.Dock,
     "medium_forest": tile.MediumForest,
     "big_forest": tile.BigForest,
 }

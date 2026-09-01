@@ -230,6 +230,8 @@ class FrontendStructureTests(unittest.TestCase):
             "water",
             "medium_forest",
             "big_forest",
+            "guard_house",
+            "dock",
         }
         self.assertEqual(set(game.data_tiles), expected_tiles)
         self.assertEqual(len(game.data_tiles), len(expected_tiles))
@@ -248,6 +250,88 @@ class FrontendStructureTests(unittest.TestCase):
         image_dir = CLIENT_DIR / "assets" / "images"
         self.assertFalse((image_dir / "Recursos_menu.png").exists())
         self.assertFalse((image_dir / "Menu_Build.png").exists())
+
+    def test_game_renders_and_commands_procedural_troops(self):
+        game_path = WEB_DIR / "game" / "game.html"
+        game = inspect(game_path)
+        game_css = (WEB_DIR / "game" / "game.css").read_text(encoding="utf-8")
+        game_js = (WEB_DIR / "game" / "game.js").read_text(encoding="utf-8")
+
+        for element_id in (
+            "troop-selection",
+            "troop-selection-title",
+            "troop-health",
+            "troop-health-value",
+            "troop-status",
+            "asset-guard-house",
+            "asset-dock",
+        ):
+            self.assertIn(element_id, game.ids)
+
+        self.assertEqual(
+            game.attributes_by_id["troop-health"]["role"],
+            "progressbar",
+        )
+        self.assertEqual(
+            game.data_tile_attributes["guard_house"]["data-cost-gold"],
+            "120",
+        )
+        self.assertEqual(
+            game.data_tile_attributes["guard_house"]["data-cost-wood"],
+            "180",
+        )
+        self.assertEqual(
+            game.data_tile_attributes["guard_house"]["data-cost-food"],
+            "80",
+        )
+        self.assertEqual(
+            game.data_tile_attributes["dock"]["data-cost-gold"],
+            "100",
+        )
+        self.assertEqual(
+            game.data_tile_attributes["dock"]["data-cost-wood"],
+            "220",
+        )
+        self.assertEqual(
+            game.data_tile_attributes["dock"]["data-cost-food"],
+            "40",
+        )
+
+        self.assertIn("snapshot.player_id", game_js)
+        self.assertIn("snapshot.troops", game_js)
+        self.assertIn("rawTroop.is_mine", game_js)
+        self.assertIn("function drawLandTroop", game_js)
+        self.assertIn("function drawBoatTroop", game_js)
+        self.assertIn("function drawTroopHealth", game_js)
+        self.assertIn("function drawTroopOrder", game_js)
+        self.assertIn("function drawTroopEffects", game_js)
+        self.assertIn("function findTroopPath", game_js)
+        self.assertIn("function troopVisualState", game_js)
+        self.assertIn("function drawLandDust", game_js)
+        self.assertIn("function drawBoatWake", game_js)
+        self.assertIn("troopMotions: new Map()", game_js)
+        self.assertIn("state.hasTroopSnapshot", game_js)
+        self.assertNotIn(
+            "state.hasTroopSnapshot && !prefersReducedMotion()",
+            game_js,
+        )
+        self.assertIn("TROOP_MOTION_REDUCED_MIN_MS", game_js)
+        self.assertIn("function drawTroopMotionFeedback", game_js)
+        self.assertIn("const previousById = new Map", game_js)
+        self.assertIn("const nextById = new Map", game_js)
+        self.assertIn("const center = troopWorldCenter(troop, now)", game_js)
+        self.assertIn("const start = troopScreenCenter(troop, now)", game_js)
+        self.assertIn('listen(canvas, "contextmenu"', game_js)
+        self.assertIn('"command_troop"', game_js)
+        self.assertRegex(
+            game_js,
+            r"const troop = troopAtPoint\(point\);[\s\S]{0,180}"
+            r"troopIsMine\(troop\)[\s\S]{0,180}selectTroop\(troop\)",
+        )
+        self.assertIn("grid-template-columns: repeat(12, minmax(0, 1fr))", game_css)
+        self.assertIn("#game-screen.has-selected-troop #world-canvas", game_css)
+        self.assertIn(".troop-selection", game_css)
+        self.assertIn("--troop-health", game_css)
 
     def test_game_shows_the_tick_and_animates_panels_from_screen_edges(self):
         game_path = WEB_DIR / "game" / "game.html"
@@ -297,7 +381,8 @@ class FrontendStructureTests(unittest.TestCase):
         )
         self.assertIn('buildMenu.classList.toggle("is-open", panelOpen)', game_js)
         self.assertIn("buildMenu.hidden = !state.visible", game_js)
-        self.assertIn("buildPanel.inert = !panelOpen", game_js)
+        self.assertIn("buildPanel.inert = !catalogOpen", game_js)
+        self.assertIn("commandPanel.inert = !commandOpen", game_js)
         self.assertIn("state.buildOpen = !state.buildOpen", game_js)
         self.assertNotIn(
             "buildMenu.hidden = !state.visible || !state.buildOpen",
@@ -330,6 +415,109 @@ class FrontendStructureTests(unittest.TestCase):
             r"#game-screen:not\(\[hidden\]\) \.build-panel-toggle",
         )
 
+    def test_command_buildings_open_recruitment_panels_and_serial_queues(self):
+        game_path = WEB_DIR / "game" / "game.html"
+        game = inspect(game_path)
+        game_css = (WEB_DIR / "game" / "game.css").read_text(encoding="utf-8")
+        game_js = (WEB_DIR / "game" / "game.js").read_text(encoding="utf-8")
+
+        for element_id in (
+            "command-panel",
+            "command-panel-back",
+            "command-building-title",
+            "command-building-icon",
+            "command-building-owner",
+            "command-army-summary",
+            "army-land-value",
+            "army-boat-value",
+            "command-center-summary",
+            "command-queue",
+            "command-queue-count",
+            "command-recruit-section",
+            "command-recruit-cost",
+            "command-recruit-time",
+            "command-recruit-button",
+            "command-recruit-message",
+        ):
+            self.assertIn(element_id, game.ids)
+
+        self.assertEqual(
+            game.attributes_by_id["command-panel"]["aria-hidden"],
+            "true",
+        )
+        self.assertIn("inert", game.attributes_by_id["command-panel"])
+        self.assertEqual(
+            game.attributes_by_id["command-army-summary"]["aria-label"],
+            "Seu exército",
+        )
+
+        guard_description = game.data_tile_attributes["guard_house"][
+            "data-description"
+        ]
+        dock_description = game.data_tile_attributes["dock"]["data-description"]
+        self.assertIn("75 de ouro", guard_description)
+        self.assertIn("2 ciclos", guard_description)
+        self.assertIn("120 de ouro", dock_description)
+        self.assertIn("3 ciclos", dock_description)
+        self.assertNotIn("a cada ciclo", guard_description)
+        self.assertNotIn("a cada 2 ciclos", dock_description)
+
+        self.assertIn("snapshot.command_buildings", game_js)
+        self.assertIn("snapshot.army", game_js)
+        self.assertIn("rawBuilding.is_mine", game_js)
+        self.assertIn("rawBuilding.can_recruit", game_js)
+        self.assertIn("rawBuilding.unavailable_reason", game_js)
+        self.assertIn("rawItem.remaining_ticks", game_js)
+        self.assertIn("rawItem.total_ticks", game_js)
+        self.assertIn("rawItem.cost_gold", game_js)
+        self.assertIn("rawItem.waiting_for_start", game_js)
+        self.assertIn("COMMAND_QUEUE_LIMIT = 5", game_js)
+        self.assertIn('callBridge("recruit_troop", building.x, building.y)', game_js)
+        for reason in (
+            "not_owner",
+            "not_recruitment_building",
+            "queue_full",
+            "army_cap_reached",
+            "insufficient_gold",
+        ):
+            self.assertIn(reason, game_js)
+        self.assertIn("Aguardando espaço", game_js)
+        self.assertIn("Aguardando próximo ciclo", game_js)
+        self.assertIn("Produção: ${item.totalTicks} ticks", game_js)
+        self.assertIn("próximo avanço em", game_js)
+        self.assertIn("Começa quando o ciclo global atual terminar", game_js)
+        self.assertIn("ticks completos", game_js)
+        self.assertIn("Fila bloqueada", game_js)
+        self.assertNotIn("tickFraction", game_js)
+        self.assertNotIn("fractionalTick", game_js)
+        self.assertIn("state.pendingRecruit", game_js)
+        self.assertIn("snapshot.last_action_error", game_js)
+        self.assertIn('error.action !== "recrutar_tropa"', game_js)
+        self.assertIn("error.revision === state.lastActionErrorRevision", game_js)
+        self.assertIn(
+            "const pendingBuildingKey = state.pendingRecruit?.buildingKey",
+            game_js,
+        )
+        self.assertIn("building.key !== pendingBuildingKey", game_js)
+        self.assertIn("state.pendingRecruit = null", game_js)
+        self.assertIn("fallbackMessage", game_js)
+        self.assertIn('state.panelMode = "command"', game_js)
+        self.assertIn("selectCommandBuilding(building)", game_js)
+        self.assertRegex(
+            game_js,
+            r"state\.matrix = snapshot\.matrix;[\s\S]{0,1800}"
+            r"applyTroopSnapshot\(snapshot\);",
+        )
+
+        self.assertIn("#build-menu.is-command .command-panel", game_css)
+        self.assertIn("grid-template-columns: repeat(5, minmax(0, 1fr))", game_css)
+        self.assertIn(".command-panel.is-town-center .command-panel-layout", game_css)
+        self.assertRegex(
+            game_css,
+            r"@media \(prefers-reduced-motion: reduce\)[\s\S]*?"
+            r"\.command-panel,[\s\S]*?\.command-queue-progress > span",
+        )
+
     def test_build_details_explain_every_tile_and_match_server_costs(self):
         game_path = WEB_DIR / "game" / "game.html"
         game_css = (WEB_DIR / "game" / "game.css").read_text(encoding="utf-8")
@@ -347,6 +535,8 @@ class FrontendStructureTests(unittest.TestCase):
             "water": "Water",
             "medium_forest": "MediumForest",
             "big_forest": "BigForest",
+            "guard_house": "GuardHouse",
+            "dock": "Dock",
         }
         tile_source = (PROJECT_ROOT / "Server" / "core" / "tile.py").read_text(
             encoding="utf-8",

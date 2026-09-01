@@ -14,7 +14,9 @@ TILES_CONSTRUCAO = frozenset(
         "mine",
         "town_center",
         "city",
+        "guard_house",
         "water",
+        "dock",
         "medium_forest",
         "big_forest",
     }
@@ -216,3 +218,65 @@ def construir(x, y, nome_tile):
         }
     )
     return {"ok": enviado}
+
+
+def ordenar_tropa(unit_id, x, y):
+    if (
+        not isinstance(unit_id, str)
+        or not unit_id
+        or len(unit_id) > 64
+        or isinstance(x, bool)
+        or isinstance(y, bool)
+        or not isinstance(x, int)
+        or not isinstance(y, int)
+    ):
+        return {"ok": False}
+
+    with state.lock:
+        if (
+            state.estado_jogo != "partida"
+            or state.player_id is None
+            or not 0 <= x < state.largura_grid
+            or not 0 <= y < state.altura_grid
+        ):
+            return {"ok": False}
+
+    return {
+        "ok": net.enviar(
+            {
+                "tipo": "ordenar_tropa",
+                "unit_id": unit_id,
+                "x": x,
+                "y": y,
+            }
+        )
+    }
+
+
+def recrutar_tropa(x, y):
+    if (
+        isinstance(x, bool)
+        or isinstance(y, bool)
+        or not isinstance(x, int)
+        or not isinstance(y, int)
+    ):
+        return {"ok": False}
+
+    with state.lock:
+        if (
+            state.estado_jogo != "partida"
+            or state.player_id is None
+            or not 0 <= x < state.largura_grid
+            or not 0 <= y < state.altura_grid
+        ):
+            return {"ok": False}
+
+    return {
+        "ok": net.enviar(
+            {
+                "tipo": "recrutar_tropa",
+                "x": x,
+                "y": y,
+            }
+        )
+    }

@@ -2,6 +2,7 @@ import asyncio
 
 import core.game_clock as game_clock
 import core.spawn as spawn
+import core.troops as troops
 import core.world as world
 from core.state import state
 
@@ -124,6 +125,7 @@ async def process_lobby_action(data, player_id, broadcast):
 
         state.matriz_dict = world.transformar_matriz_em_dict(state.matriz)
         state.world_revision += 1
+        troops.reset()
         state.phase = "game"
         game_clock.reset()
         state.lobby_revision += 1

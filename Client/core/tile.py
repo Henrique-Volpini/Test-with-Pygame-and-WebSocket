@@ -70,8 +70,23 @@ class City(Tile):
     custo_wood = 10
 
 
+class GuardHouse(Tile):
+    nome = "guard_house"
+    custo_gold = 120
+    custo_wood = 180
+    custo_food = 80
+
+
 class Water(Tile):
     nome = "water"
+    custo_gold = 40
+
+
+class Dock(Tile):
+    nome = "dock"
+    custo_gold = 100
+    custo_wood = 220
+    custo_food = 40
 
 
 class SmallForest(Tile):

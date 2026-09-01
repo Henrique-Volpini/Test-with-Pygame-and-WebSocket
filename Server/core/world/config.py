@@ -34,7 +34,9 @@ NOME_POR_TILES = {
     tile.Mine: "mine",
     tile.TownCenter: "town_center",
     tile.City: "city",
+    tile.GuardHouse: "guard_house",
     tile.Water: "water",
+    tile.Dock: "dock",
     tile.MediumForest: "medium_forest",
     tile.BigForest: "big_forest",
 }

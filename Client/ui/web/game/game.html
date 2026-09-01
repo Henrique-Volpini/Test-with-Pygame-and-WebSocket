@@ -46,9 +46,25 @@
         </div>
     </header>
 
+    <aside id="troop-selection" class="troop-selection" aria-labelledby="troop-selection-title" aria-live="polite" hidden>
+        <div class="troop-selection-heading">
+            <span class="troop-selection-kicker">UNIDADE SELECIONADA</span>
+            <strong id="troop-selection-title">Tropa terrestre</strong>
+        </div>
+        <div class="troop-health-row">
+            <span>VIDA</span>
+            <strong id="troop-health-value">100 / 100</strong>
+        </div>
+        <div id="troop-health" class="troop-health" role="progressbar" aria-label="Vida da unidade" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+            <span></span>
+        </div>
+        <p id="troop-status">Em posição</p>
+        <small>Clique direito no mapa para mover ou atacar.</small>
+    </aside>
+
     <div id="build-menu">
         <button id="build-panel-toggle" class="build-panel-toggle" type="button" aria-controls="build-panel" aria-expanded="false">
-            <span class="build-panel-toggle-label">Construções</span>
+            <span id="build-panel-toggle-label" class="build-panel-toggle-label">Construções</span>
             <span class="build-panel-toggle-chevron" aria-hidden="true">⌃</span>
         </button>
 
@@ -105,7 +121,15 @@
                     <span class="build-tile-preview"><img src="assets/images/City.png" alt="" draggable="false"></span>
                     <span class="build-label">Cidade</span>
                 </button>
-                <button class="build-button" type="button" data-tile="water" data-name="Água" data-category="TERRENO" data-description="Transforma o tile em água. Não gera recursos." data-requirement="Alteração de terreno" data-cost-gold="0" data-cost-wood="0" data-cost-food="0" aria-label="Colocar água">
+                <button class="build-button" type="button" data-tile="guard_house" data-name="Casa da Guarda" data-category="MILITAR" data-description="Abre uma fila para treinar tropas terrestres por 75 de ouro em 2 ciclos." data-requirement="Somente sobre uma cidade própria" data-cost-gold="120" data-cost-wood="180" data-cost-food="80" aria-label="Construir casa da guarda">
+                    <span class="build-tile-preview"><img src="assets/images/Guard_House.png" alt="" draggable="false"></span>
+                    <span class="build-label">Guarda</span>
+                </button>
+                <button class="build-button" type="button" data-tile="dock" data-name="Doca" data-category="MILITAR NAVAL" data-description="Abre uma fila para construir embarcações por 120 de ouro em 3 ciclos." data-requirement="Somente em água livre ao lado ortogonal de terra" data-cost-gold="100" data-cost-wood="220" data-cost-food="40" aria-label="Construir doca">
+                    <span class="build-tile-preview"><img src="assets/images/Dock.png" alt="" draggable="false"></span>
+                    <span class="build-label">Doca</span>
+                </button>
+                <button class="build-button" type="button" data-tile="water" data-name="Água" data-category="TERRENO" data-description="Transforma o tile em água. Não gera recursos." data-requirement="Alteração de terreno" data-cost-gold="40" data-cost-wood="0" data-cost-food="0" aria-label="Colocar água">
                     <span class="build-tile-preview"><img src="assets/images/Water.png" alt="" draggable="false"></span>
                     <span class="build-label">Água</span>
                 </button>
@@ -140,6 +164,51 @@
                 </button>
             </div>
         </section>
+
+        <section id="command-panel" class="command-panel" aria-labelledby="command-building-title" aria-hidden="true" inert>
+            <div class="command-panel-layout">
+                <header class="command-building-identity">
+                    <button id="command-panel-back" class="command-panel-back" type="button" aria-label="Voltar ao menu de construções">
+                        <span aria-hidden="true">‹</span> Construções
+                    </button>
+                    <div class="command-building-heading">
+                        <span id="command-building-kicker">EDIFÍCIO DE COMANDO</span>
+                        <strong id="command-building-title">Centro urbano</strong>
+                    </div>
+                    <div class="command-building-owner-row">
+                        <img id="command-building-icon" src="assets/images/Town_Center.png" alt="" draggable="false">
+                        <span id="command-building-owner">Seu domínio</span>
+                    </div>
+                    <div id="command-army-summary" class="command-army-summary" aria-label="Seu exército">
+                        <span><small>TERRA</small><strong id="army-land-value">0 / 24</strong></span>
+                        <span><small>MAR</small><strong id="army-boat-value">0 / 12</strong></span>
+                    </div>
+                </header>
+
+                <section class="command-queue-section" aria-labelledby="command-queue-title">
+                    <div class="command-section-heading">
+                        <div>
+                            <span>PRODUÇÃO</span>
+                            <strong id="command-queue-title">Fila de recrutamento</strong>
+                        </div>
+                        <span id="command-queue-count">0 / 5</span>
+                    </div>
+                    <p id="command-center-summary" class="command-center-summary" hidden>O centro urbano identifica seu domínio e resume todas as tropas sob seu comando.</p>
+                    <ol id="command-queue" class="command-queue" aria-label="Fila de recrutamento"></ol>
+                </section>
+
+                <section id="command-recruit-section" class="command-recruit-section" aria-labelledby="command-recruit-kind">
+                    <span class="command-recruit-kicker">NOVA ORDEM</span>
+                    <strong id="command-recruit-kind">Tropa terrestre</strong>
+                    <div class="command-recruit-details">
+                        <span><small>CUSTO</small><strong id="command-recruit-cost">75 ouro</strong></span>
+                        <span><small>TEMPO</small><strong id="command-recruit-time">2 ticks completos · 20 s</strong></span>
+                    </div>
+                    <button id="command-recruit-button" class="command-recruit-button" type="button">Treinar tropa</button>
+                    <p id="command-recruit-message">Começa quando o ciclo global atual terminar.</p>
+                </section>
+            </div>
+        </section>
     </div>
 </section>
 
@@ -154,5 +223,7 @@
     <img id="asset-water" src="assets/images/Water.png" alt="">
     <img id="asset-medium-forest" src="assets/images/Medium_Forest.png" alt="">
     <img id="asset-big-forest" src="assets/images/Big_Forest.png" alt="">
+    <img id="asset-guard-house" src="assets/images/Guard_House.png" alt="">
+    <img id="asset-dock" src="assets/images/Dock.png" alt="">
     <img id="asset-selected" src="assets/images/Selected.png" alt="">
 </div>
