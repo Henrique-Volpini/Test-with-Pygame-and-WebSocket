@@ -1,5 +1,6 @@
 from core.state import state
 import core.troops as troops
+import core.exploration as exploration
 
 def evento_10_segundos(tick_number=None):
     
@@ -12,4 +13,5 @@ def evento_10_segundos(tick_number=None):
                 state.players[player].recursos.food += recursos_produzidos.food
 
     troops.process_tick(tick_number)
+    exploration.process_tick(tick_number if tick_number is not None else state.tick_numero)
 

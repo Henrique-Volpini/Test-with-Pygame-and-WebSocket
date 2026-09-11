@@ -65,6 +65,17 @@ class TroopClientTests(unittest.TestCase):
                     "max_hp": 12,
                     "target": [1, 0],
                     "status": "moving",
+                }, {
+                    "id": "pioneer-1",
+                    "owner": "player-1",
+                    "is_mine": True,
+                    "kind": "pioneer",
+                    "x": 0,
+                    "y": 0,
+                    "hp": 10,
+                    "max_hp": 10,
+                    "target": None,
+                    "status": "idle",
                 }],
             }
             assert handlers._aplicar_snapshot(snapshot) is True

@@ -391,6 +391,7 @@ class LobbyBackendTests(unittest.TestCase):
                 ["grass", "water"],
                 ["mountain", "small_forest"],
             ]
+            assert state.matriz_pronta is True
             cached = api.get_snapshot(-1, 4)
             assert cached["lobby"]["matrix"] is None
 
@@ -398,7 +399,7 @@ class LobbyBackendTests(unittest.TestCase):
                 "tipo": "resposta",
                 "fase": "game",
                 "world_revision": 4,
-                "matriz": None,
+                "matriz": matrix,
                 "recursos": {"gold": 500, "wood": 500, "food": 500},
                 "posicao_inicial": [1, 1],
             })
@@ -406,6 +407,96 @@ class LobbyBackendTests(unittest.TestCase):
             assert state.partida_criada is True
             assert state.spawn_position == (1, 1)
             assert api.get_snapshot(-1, -1)["spawn_position"] == [1, 1]
+            """,
+        )
+
+    def test_game_replaces_full_lobby_preview_with_private_fog_matrix(self):
+        run_isolated(
+            CLIENT_DIR,
+            """
+            from connection.handlers import receber
+            from core.state import state
+            from ui.api import GameApi
+
+            state.voltar_ao_menu()
+            state.resetar_sessao("ws://example/ws", "Conectando...", "connect")
+            receber({
+                "tipo": "bem_vindo",
+                "player_id": "guest",
+                "is_host": False,
+                "fase": "lobby",
+            })
+            full_map = [
+                [{"tile": "mountain", "dono": None} for x in range(9)]
+                for y in range(9)
+            ]
+            receber({
+                "tipo": "lobby_estado",
+                "fase": "lobby",
+                "revisao": 1,
+                "world_revision": 4,
+                "seed": 123,
+                "largura": 9,
+                "altura": 9,
+                "gerando": False,
+                "jogadores": [],
+                "matriz": full_map,
+            })
+            api = GameApi()
+            lobby = api.get_snapshot(-1, -1)
+            assert lobby["screen"] == "lobby"
+            assert lobby["lobby"]["matrix"] == [["mountain"] * 9 for y in range(9)]
+            assert all(cell is not None for row in state.matriz for cell in row)
+            lobby_world_revision = state.world_revision
+
+            private_map = []
+            for y in range(9):
+                row = []
+                for x in range(9):
+                    distance = max(abs(x - 4), abs(y - 4))
+                    if distance <= 2:
+                        row.append({"tile": "grass", "dono": None, "territorio": None})
+                    elif distance == 3:
+                        row.append({"tile": "mountain", "preview": True})
+                    else:
+                        row.append(None)
+                private_map.append(row)
+            private_map[4][4] = {
+                "tile": "town_center", "dono": "guest", "territorio": "guest",
+            }
+            first_game = {
+                "tipo": "resposta",
+                "fase": "game",
+                "world_revision": 5,
+                "matriz": private_map,
+                "recursos": {"gold": 500, "wood": 500, "food": 500},
+                "posicao_inicial": [4, 4],
+            }
+            receber(first_game)
+            game = api.get_snapshot(lobby_world_revision, 4)
+            assert game["screen"] == "game"
+            assert game["lobby"] is None
+            assert game["matrix"] == private_map
+            assert game["world_revision"] > lobby_world_revision
+            assert sum(cell is not None for row in state.matriz for cell in row) == 25
+            for y, row in enumerate(game["matrix"]):
+                for x, cell in enumerate(row):
+                    distance = max(abs(x - 4), abs(y - 4))
+                    if distance > 3:
+                        assert cell is None
+                        assert state.matriz[y][x] is None
+                        assert state.matriz_render[y][x] is None
+                    elif distance == 3:
+                        assert cell == {"tile": "mountain", "preview": True}
+                        assert state.matriz[y][x] is None
+                        assert state.matriz_render[y][x] == "mountain"
+                    else:
+                        assert state.matriz[y][x] is not None
+
+            # Clock updates without a matrix must keep the private view.
+            receber({**first_game, "matriz": None})
+            assert api.get_snapshot(-1, -1)["matrix"] == private_map
+            assert api.get_snapshot(game["world_revision"], 4)["matrix"] is None
             """,
         )
 
@@ -626,17 +717,30 @@ class LobbyBackendTests(unittest.TestCase):
                             center_x, center_y = snapshot["posicao_inicial"]
                             self.assertTrue(
                                 all(
-                                    host_generated["matriz"][y][x]["tile"]
-                                    == "grass"
+                                    host_generated["matriz"][y][x]["tile"] == "grass"
                                     for y in range(center_y - 2, center_y + 3)
                                     for x in range(center_x - 2, center_x + 3)
                                 )
                             )
+                            self.assertEqual(
+                                sum(
+                                    cell is not None and not cell.get("preview")
+                                    for row in snapshot["matriz"]
+                                    for cell in row
+                                ),
+                                25,
+                            )
+                            for y, row in enumerate(snapshot["matriz"]):
+                                for x, cell in enumerate(row):
+                                    self.assertEqual(
+                                        cell is not None and not cell.get("preview"),
+                                        max(abs(x-center_x), abs(y-center_y)) <= 2,
+                                    )
                             owned_tiles = [
                                 cell
                                 for row in snapshot["matriz"]
                                 for cell in row
-                                if cell["dono"] == owner
+                                if cell is not None and not cell.get("preview") and cell["dono"] == owner
                             ]
                             self.assertEqual(len(owned_tiles), 9)
                             self.assertEqual(
@@ -656,12 +760,17 @@ class LobbyBackendTests(unittest.TestCase):
                                 }
                             )
                         )
-                        host_after_build = await receive(host)
                         guest_after_build = await receive(guest)
-                        self.assertEqual(host_after_build["fase"], "game")
+                        self.assertEqual(guest_after_build["codigo"], "invalid_build")
+                        # Uma ordem autorizada continua a propagar o estado privado.
+                        cx, cy = guest_game["posicao_inicial"]
+                        await guest.send(json.dumps({"tipo": "recrutar_tropa", "x": cx, "y": cy}))
+                        host_after_recruit = await receive(host)
+                        guest_after_recruit = await receive(guest)
+                        self.assertEqual(host_after_recruit["fase"], "game")
                         self.assertEqual(
-                            guest_after_build["recursos"]["wood"],
-                            490,
+                            guest_after_recruit["recursos"],
+                            {"gold": 440, "wood": 500, "food": 500},
                         )
 
                     async with websockets.connect(
@@ -676,12 +785,14 @@ class LobbyBackendTests(unittest.TestCase):
                         )
                         self.assertEqual(
                             reconnected_game["recursos"]["wood"],
-                            490,
+                            500,
                         )
                         self.assertEqual(
-                            reconnected_game["matriz"][0][0]["dono"],
-                            guest_player_id,
+                            reconnected_game["matriz"],
+                            guest_game["matriz"],
                         )
+                        self.assertEqual(reconnected_game["recursos"]["gold"], 440)
+                        self.assertEqual(reconnected_game["command_buildings"][0]["queue"][0]["unit_kind"], "pioneer")
 
                     late_join_options = {"max_size": 16 * 1024 * 1024}
                     late_join_options[header_parameter] = {

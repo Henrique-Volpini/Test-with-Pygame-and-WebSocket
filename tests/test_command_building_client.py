@@ -26,6 +26,41 @@ def run_isolated(source):
 
 
 class CommandBuildingClientTests(unittest.TestCase):
+    def test_pioneer_queue_and_cap_are_validated_at_town_center(self):
+        run_isolated(
+            """
+            import copy
+            import connection.handlers as handlers
+
+            queue = {
+                "id": "pioneer-queue-1", "unit_kind": "pioneer",
+                "remaining_ticks": 1, "total_ticks": 1,
+                "cost_gold": 60, "waiting_for_start": True,
+            }
+            buildings = [{
+                "x": 0, "y": 0, "type": "town_center",
+                "owner": "player-1", "is_mine": True,
+                "queue": [queue], "can_recruit": True,
+                "unavailable_reason": None,
+            }]
+            army = {
+                "land": 0, "boat": 0, "pioneer": 0,
+                "land_cap": 24, "boat_cap": 12, "pioneer_cap": 8,
+            }
+            assert handlers._validar_command_buildings(buildings, "player-1", 1, 1) == buildings
+            assert handlers._validar_consistencia_militar([], buildings, army, {"gold": 60})
+            for building_type in ("guard_house", "dock"):
+                invalid = copy.deepcopy(buildings)
+                invalid[0]["type"] = building_type
+                assert handlers._validar_command_buildings(invalid, "player-1", 1, 1) is False
+            for key, value in (("cost_gold", 0), ("total_ticks", 2)):
+                invalid = copy.deepcopy(buildings)
+                invalid[0]["queue"][0][key] = value
+                assert handlers._validar_command_buildings(invalid, "player-1", 1, 1) is False
+            assert handlers._validar_consistencia_militar([], buildings, army, {"gold": 59}) is False
+            """
+        )
+
     def test_snapshot_is_copied_preserved_when_absent_and_reset(self):
         run_isolated(
             """
@@ -108,8 +143,8 @@ class CommandBuildingClientTests(unittest.TestCase):
                         "owner": "player-1",
                         "is_mine": True,
                         "queue": [],
-                        "can_recruit": False,
-                        "unavailable_reason": "not_recruitment_building",
+                        "can_recruit": True,
+                        "unavailable_reason": None,
                     },
                     {
                         "x": 1,
@@ -161,6 +196,8 @@ class CommandBuildingClientTests(unittest.TestCase):
                     "boat": 1,
                     "land_cap": 24,
                     "boat_cap": 12,
+                    "pioneer": 0,
+                    "pioneer_cap": 8,
                 },
             }
             expected_buildings = copy.deepcopy(snapshot["command_buildings"])
@@ -208,6 +245,8 @@ class CommandBuildingClientTests(unittest.TestCase):
                 "boat": 0,
                 "land_cap": 24,
                 "boat_cap": 12,
+                "pioneer": 0,
+                "pioneer_cap": 8,
             }
 
             state.command_buildings = copy.deepcopy(expected_buildings)
@@ -219,6 +258,8 @@ class CommandBuildingClientTests(unittest.TestCase):
                 "boat": 0,
                 "land_cap": 24,
                 "boat_cap": 12,
+                "pioneer": 0,
+                "pioneer_cap": 8,
             }
             """
         )
@@ -278,8 +319,8 @@ class CommandBuildingClientTests(unittest.TestCase):
                     "owner": "player-1",
                     "is_mine": True,
                     "queue": [],
-                    "can_recruit": False,
-                    "unavailable_reason": "not_recruitment_building",
+                    "can_recruit": True,
+                    "unavailable_reason": None,
                 },
                 {
                     "x": 1,
@@ -312,7 +353,7 @@ class CommandBuildingClientTests(unittest.TestCase):
                     "unavailable_reason": "not_owner",
                 },
             ]
-            army = {"land": 1, "boat": 1, "land_cap": 24, "boat_cap": 12}
+            army = {"land": 1, "boat": 1, "pioneer": 0, "land_cap": 24, "boat_cap": 12, "pioneer_cap": 8}
             troops = [
                 unit("troop-land-1", "land"),
                 unit("troop-boat-1", "boat", 2),
@@ -364,7 +405,7 @@ class CommandBuildingClientTests(unittest.TestCase):
             ) is True
 
             no_gold_buildings = copy.deepcopy(buildings)
-            for building_index in (1, 2):
+            for building_index in (0, 1, 2):
                 no_gold_buildings[building_index]["can_recruit"] = False
                 no_gold_buildings[building_index]["unavailable_reason"] = (
                     "insufficient_gold"
@@ -385,8 +426,12 @@ class CommandBuildingClientTests(unittest.TestCase):
                 "boat": 1,
                 "land_cap": 24,
                 "boat_cap": 12,
+                "pioneer": 0,
+                "pioneer_cap": 8,
             }
             capped_buildings = copy.deepcopy(buildings)
+            capped_buildings[0]["can_recruit"] = False
+            capped_buildings[0]["unavailable_reason"] = "insufficient_gold"
             capped_buildings[1]["queue"] = []
             capped_buildings[1]["can_recruit"] = False
             capped_buildings[1]["unavailable_reason"] = "army_cap_reached"
@@ -461,7 +506,7 @@ class CommandBuildingClientTests(unittest.TestCase):
             invalid_snapshots.append(candidate)
 
             candidate = copy.deepcopy(incremental)
-            candidate["command_buildings"][0]["can_recruit"] = True
+            candidate["command_buildings"][0]["can_recruit"] = False
             invalid_snapshots.append(candidate)
 
             candidate = copy.deepcopy(incremental)

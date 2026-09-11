@@ -26,6 +26,63 @@ def run_isolated(source):
 
 
 class RecruitmentRuntimeTests(unittest.TestCase):
+    def test_pioneers_recruit_only_at_town_center_with_one_full_tick_and_cap(self):
+        run_isolated(
+            """
+            import core.player as player
+            import core.tile as tile
+            import core.troops as troops
+            from core.state import state
+
+            owner = player.Player("owner", None, 1, True)
+            state.players = {owner.id: owner}
+            state.matriz = [[tile.Grass(), tile.TownCenter(owner.id), tile.Grass()]]
+            owner.explored_tiles = {(1, 0)}
+            troops.reset()
+            assert troops._BUILDING_KIND == {
+                "TownCenter": troops.PIONEER,
+                "GuardHouse": troops.LAND,
+                "Dock": troops.BOAT,
+            }
+            assert troops.command_buildings_snapshot(owner.id)[0]["can_recruit"]
+            for _ in range(4):
+                troops._new_troop(owner.id, troops.LAND, 1, 0)
+
+            item = troops.recruit(owner.id, 1, 0)
+            assert item.unit_kind == troops.PIONEER
+            assert item.cost_gold == 60 and item.total_ticks == 1
+            assert owner.recursos.to_dict() == {"gold": 440, "wood": 500, "food": 500}
+            troops.process_tick(1)
+            assert item.remaining_ticks == 1 and not item.waiting_for_start
+            troops.process_tick(2)
+            assert item.remaining_ticks == 0
+            assert troops.army_snapshot(owner.id)["pioneer"] == 0
+            assert (1, 0) in state.recruitment_queues
+
+            # A fila aguarda lugar conhecido, mesmo havendo terreno oculto livre.
+            owner.explored_tiles.add((2, 0))
+            troops.process_tick(3)
+            pioneers = [unit for unit in state.troops.values() if unit.kind == troops.PIONEER]
+            assert len(pioneers) == 1
+            assert (pioneers[0].x, pioneers[0].y) == (2, 0)
+            assert pioneers[0].hp == pioneers[0].max_hp == 10
+            assert state.recruitment_queues == {}
+            assert troops.army_snapshot(owner.id)["pioneer_cap"] == 8
+            assert owner.explored_tiles == {(1, 0), (2, 0)}
+
+            for _ in range(6):
+                troops._new_troop(owner.id, troops.PIONEER, 2, 0)
+            troops.recruit(owner.id, 1, 0)
+            try:
+                troops.recruit(owner.id, 1, 0)
+            except troops.TroopActionError as exc:
+                assert exc.code == "army_cap_reached"
+            else:
+                raise AssertionError("reservas de pioneiros ultrapassaram o cap")
+            assert owner.recursos.gold == 380
+            """
+        )
+
     def test_manual_cost_duration_and_per_viewer_snapshot_contract(self):
         run_isolated(
             """
@@ -56,6 +113,10 @@ class RecruitmentRuntimeTests(unittest.TestCase):
                 ],
             ]
             state.matriz_dict = [[{"tile": "grass", "dono": None} for _ in row] for row in state.matriz]
+            for participant in state.players.values():
+                participant.explored_tiles = {
+                    (x, y) for y, row in enumerate(state.matriz) for x in range(len(row))
+                }
             troops.reset()
 
             # Os predios nunca mais produzem automaticamente.
@@ -92,6 +153,8 @@ class RecruitmentRuntimeTests(unittest.TestCase):
                 "boat": 0,
                 "land_cap": 24,
                 "boat_cap": 12,
+                "pioneer": 0,
+                "pioneer_cap": 8,
             }
             buildings = {item["type"]: item for item in snapshot["command_buildings"]}
             assert set(buildings) == {"town_center", "guard_house", "dock"}
@@ -100,8 +163,8 @@ class RecruitmentRuntimeTests(unittest.TestCase):
                 "can_recruit", "unavailable_reason",
             }
             assert buildings["town_center"]["queue"] == []
-            assert buildings["town_center"]["can_recruit"] is False
-            assert buildings["town_center"]["unavailable_reason"] == "not_recruitment_building"
+            assert buildings["town_center"]["can_recruit"] is True
+            assert buildings["town_center"]["unavailable_reason"] is None
             assert buildings["guard_house"]["queue"] == [{
                 "id": "recruit-1",
                 "unit_kind": "land",
@@ -148,6 +211,8 @@ class RecruitmentRuntimeTests(unittest.TestCase):
                 "boat": 1,
                 "land_cap": 24,
                 "boat_cap": 12,
+                "pioneer": 0,
+                "pioneer_cap": 8,
             }
             """
         )
@@ -165,7 +230,11 @@ class RecruitmentRuntimeTests(unittest.TestCase):
             enemy = player.Player("enemy", None, 2)
             owner.recursos.gold = 2_000
             state.players = {owner.id: owner, enemy.id: enemy}
-            state.matriz = [[tile.GuardHouse(owner.id), tile.TownCenter(owner.id)]]
+            state.matriz = [[tile.GuardHouse(owner.id), tile.City(owner.id)]]
+            for participant in state.players.values():
+                participant.explored_tiles = {
+                    (x, y) for y, row in enumerate(state.matriz) for x in range(len(row))
+                }
             troops.reset()
 
             state.phase = "lobby"
@@ -257,6 +326,10 @@ class RecruitmentRuntimeTests(unittest.TestCase):
                 tile.Dock(owner.id),
                 tile.Dock(owner.id),
             ]]
+            for participant in state.players.values():
+                participant.explored_tiles = {
+                    (x, y) for y, row in enumerate(state.matriz) for x in range(len(row))
+                }
             troops.reset()
 
             for index in range(19):
@@ -285,6 +358,8 @@ class RecruitmentRuntimeTests(unittest.TestCase):
                 "boat": 11,
                 "land_cap": 24,
                 "boat_cap": 12,
+                "pioneer": 0,
+                "pioneer_cap": 8,
             }
             buildings = troops.command_buildings_snapshot(owner.id)
             by_x = {item["x"]: item for item in buildings}
@@ -312,6 +387,10 @@ class RecruitmentRuntimeTests(unittest.TestCase):
                 [tile.Water(None), tile.GuardHouse(owner.id), tile.Water(None)],
                 [tile.Water(None), tile.Water(None), tile.Water(None)],
             ]
+            for participant in state.players.values():
+                participant.explored_tiles = {
+                    (x, y) for y, row in enumerate(state.matriz) for x in range(len(row))
+                }
             troops.reset()
             blockers = [
                 troops._new_troop(owner.id, troops.LAND, 1, 1)
@@ -364,6 +443,10 @@ class RecruitmentRuntimeTests(unittest.TestCase):
             state.players = {owner.id: owner}
             state.phase = "game"
             state.matriz = [[tile.GuardHouse(owner.id), tile.Dock(owner.id)]]
+            for participant in state.players.values():
+                participant.explored_tiles = {
+                    (x, y) for y, row in enumerate(state.matriz) for x in range(len(row))
+                }
             troops.reset()
 
             game_clock.reset(now=100.0)
@@ -401,6 +484,10 @@ class RecruitmentRuntimeTests(unittest.TestCase):
             assert sum(unit.kind == troops.LAND for unit in state.troops.values()) == 2
             assert state.recruitment_queues == {}
 
+            for participant in state.players.values():
+                participant.explored_tiles = {
+                    (x, y) for y, row in enumerate(state.matriz) for x in range(len(row))
+                }
             troops.reset()
             assert state.troops == {}
             assert state.recruitment_queues == {}

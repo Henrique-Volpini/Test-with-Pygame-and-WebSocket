@@ -55,7 +55,7 @@ def build_lobby_update(player_id, include_matrix=True):
     host_conectado = state.host_player_id in state.active_conn_by_player_id
 
     if state.world_generating:
-        status = "Gerando uma nova prévia do mundo..."
+        status = "Gerando o mundo..."
     elif not host_conectado:
         status = "O anfitrião está desconectado."
     elif state.world_error:

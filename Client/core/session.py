@@ -115,7 +115,7 @@ def configurar_lobby(seed, tamanho, parametros=None):
             return {"ok": False}
         state.lobby_generating = True
         state.lobby_error = None
-        state.lobby_status = "Gerando uma nova prévia do mundo..."
+        state.lobby_status = "Gerando o mundo..."
 
     enviado = net.enviar(
         {
@@ -150,7 +150,7 @@ def regenerar_lobby(tamanho, parametros=None):
             return {"ok": False}
         state.lobby_generating = True
         state.lobby_error = None
-        state.lobby_status = "Gerando uma nova prévia do mundo..."
+        state.lobby_status = "Gerando o mundo..."
 
     enviado = net.enviar(
         {
@@ -280,3 +280,20 @@ def recrutar_tropa(x, y):
             }
         )
     }
+
+
+def acao_pioneiro(action, unit_id, x, y):
+    if (
+        action not in ("explorar_tile", "reivindicar_tile")
+        or not isinstance(unit_id, str) or not unit_id or len(unit_id) > 64
+        or isinstance(x, bool) or isinstance(y, bool)
+        or not isinstance(x, int) or not isinstance(y, int)
+    ):
+        return {"ok": False}
+    with state.lock:
+        if (
+            state.estado_jogo != "partida" or state.player_id is None
+            or not 0 <= x < state.largura_grid or not 0 <= y < state.altura_grid
+        ):
+            return {"ok": False}
+    return {"ok": net.enviar({"tipo": action, "unit_id": unit_id, "x": x, "y": y})}

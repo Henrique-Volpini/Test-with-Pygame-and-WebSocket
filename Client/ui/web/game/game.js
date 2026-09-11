@@ -16,6 +16,7 @@ const BUILD_INFO_SHOW_DELAY_MS = 320;
 const BUILD_INFO_SWITCH_DELAY_MS = 70;
 const BUILD_INFO_HIDE_DELAY_MS = 110;
 const DEFAULT_TICK_INTERVAL_MS = 10000;
+const MAP_HELP_DURATION_MS = 12000;
 const TROOP_HIT_RADIUS = 14;
 const TROOP_EFFECT_LIMIT = 80;
 const TROOP_EFFECT_DURATION_MS = {
@@ -29,6 +30,7 @@ const TROOP_MOTION_REDUCED_MIN_MS = 520;
 const TROOP_MOTION_REDUCED_MAX_MS = 820;
 const COMMAND_QUEUE_LIMIT = 5;
 const RECRUIT_SPECS = {
+    town_center: {kind: "pioneer", costGold: 60, totalTicks: 1},
     guard_house: {kind: "land", costGold: 75, totalTicks: 2},
     dock: {kind: "boat", costGold: 120, totalTicks: 3},
 };
@@ -64,6 +66,7 @@ export function createGame({callBridge, viewport}) {
     const commandBuildingIcon = byId("command-building-icon");
     const armyLandValue = byId("army-land-value");
     const armyBoatValue = byId("army-boat-value");
+    const armyPioneerValue = byId("army-pioneer-value");
     const commandArmySummary = byId("command-army-summary");
     const commandQueue = byId("command-queue");
     const commandQueueCount = byId("command-queue-count");
@@ -86,10 +89,24 @@ export function createGame({callBridge, viewport}) {
     const tickProgress = byId("tick-progress");
     const tickCycleNumber = byId("tick-cycle-number");
     const troopSelection = byId("troop-selection");
+    const troopSelectionClose = byId("troop-selection-close");
+    const mapHelp = byId("territory-legend");
+    const mapHelpToggle = byId("map-help-toggle");
+    const mapHelpClose = byId("map-help-close");
     const troopSelectionTitle = byId("troop-selection-title");
     const troopHealth = byId("troop-health");
     const troopHealthValue = byId("troop-health-value");
     const troopStatus = byId("troop-status");
+    const pioneerActions = byId("pioneer-actions");
+    const pioneerTarget = byId("pioneer-target");
+    const pioneerExploreButton = byId("pioneer-explore-button");
+    const pioneerClaimButton = byId("pioneer-claim-button");
+    const pioneerExploreReason = byId("pioneer-explore-reason");
+    const pioneerClaimReason = byId("pioneer-claim-reason");
+    const pioneerExploreCost = byId("pioneer-explore-cost");
+    const pioneerClaimCost = byId("pioneer-claim-cost");
+    const buildAvailability = byId("build-availability");
+    const actionFeedback = byId("action-feedback");
     const buildCosts = Object.fromEntries(RESOURCE_NAMES.map((resource) => [
         resource,
         {
@@ -137,8 +154,10 @@ export function createGame({callBridge, viewport}) {
         army: {
             land: 0,
             boat: 0,
+            pioneer: 0,
             landCap: 24,
             boatCap: 12,
+            pioneerCap: 8,
         },
         pendingRecruit: null,
         commandFeedback: null,
@@ -161,6 +180,17 @@ export function createGame({callBridge, viewport}) {
         selectedTroopId: null,
         pendingTroopTarget: null,
         troopEffects: [],
+        explorationRules: {
+            explore_cost: {gold: 20, wood: 0, food: 0},
+            claim_cost: {gold: 0, wood: 30, food: 10},
+            radius: 1,
+            total_ticks: 1,
+        },
+        explorationOrders: [],
+        mapHelpShown: false,
+        mapHelpUntil: 0,
+        pendingPioneerAction: null,
+        feedbackUntil: 0,
     };
 
     const tileImages = {
@@ -269,8 +299,11 @@ export function createGame({callBridge, viewport}) {
         }
 
         buildCostFree.hidden = !isFree;
-        buildInfoStatus.classList.toggle("is-unavailable", !isAffordable);
-        if (isFree) {
+        const restriction = buildRestriction(button.dataset.tile);
+        buildInfoStatus.classList.toggle("is-unavailable", !isAffordable || Boolean(restriction));
+        if (restriction) {
+            buildInfoStatus.textContent = restriction;
+        } else if (isFree) {
             buildInfoStatus.textContent = "SEM CUSTO";
         } else if (isAffordable) {
             buildInfoStatus.textContent = "DISPONÍVEL";
@@ -398,6 +431,7 @@ export function createGame({callBridge, viewport}) {
         if (!catalogOpen) {
             hideBuildInfo();
         }
+        updateBuildAvailability();
     }
 
     function setVisible(visible) {
@@ -416,9 +450,25 @@ export function createGame({callBridge, viewport}) {
             state.pendingRecruit = null;
             state.commandFeedback = null;
             state.lastActionErrorRevision = null;
+            state.pendingPioneerAction = null;
+            state.explorationOrders = [];
+            state.mapHelpShown = false;
+            setMapHelpVisible(false);
+            state.feedbackUntil = 0;
+            actionFeedback.hidden = true;
+        }
+        if (state.visible && !state.mapHelpShown) {
+            state.mapHelpShown = true;
+            setMapHelpVisible(true);
         }
         setBuildVisibility();
         updateTroopSelectionUi();
+    }
+
+    function setMapHelpVisible(visible) {
+        mapHelp.hidden = !visible;
+        mapHelpToggle.setAttribute("aria-expanded", String(visible));
+        state.mapHelpUntil = visible ? performance.now() + MAP_HELP_DURATION_MS : 0;
     }
 
     function setInteractionLocked(locked) {
@@ -428,6 +478,8 @@ export function createGame({callBridge, viewport}) {
             hideBuildInfo();
         }
         renderCommandPanel();
+        updateTroopSelectionUi();
+        updateBuildAvailability();
     }
 
     function updateResourceHud() {
@@ -466,7 +518,7 @@ export function createGame({callBridge, viewport}) {
         const totalTicks = Math.max(1, Math.trunc(Number(rawItem.total_ticks) || 1));
         return {
             id: String(rawItem.id),
-            unitKind: rawItem.unit_kind === "boat" ? "boat" : "land",
+            unitKind: normalizeUnitKind(rawItem.unit_kind),
             remainingTicks: Math.max(
                 0,
                 Math.min(totalTicks, Math.trunc(Number(rawItem.remaining_ticks) || 0)),
@@ -520,8 +572,10 @@ export function createGame({callBridge, viewport}) {
         return {
             land: count(rawArmy.land, state.army.land),
             boat: count(rawArmy.boat, state.army.boat),
+            pioneer: count(rawArmy.pioneer, state.army.pioneer),
             landCap: count(rawArmy.land_cap, state.army.landCap),
             boatCap: count(rawArmy.boat_cap, state.army.boatCap),
+            pioneerCap: count(rawArmy.pioneer_cap, state.army.pioneerCap),
         };
     }
 
@@ -560,11 +614,11 @@ export function createGame({callBridge, viewport}) {
         const spec = RECRUIT_SPECS[building?.type];
         return {
             not_owner: "Este edifício pertence a outro jogador.",
-            not_recruitment_building: "O centro urbano não recruta tropas.",
+            not_recruitment_building: "Este edifício não recruta unidades.",
             queue_full: "A fila já possui 5 ordens.",
             army_cap_reached: spec?.kind === "boat"
                 ? "Limite naval atingido."
-                : "Limite terrestre atingido.",
+                : spec?.kind === "pioneer" ? "Limite de pioneiros atingido." : "Limite terrestre atingido.",
             insufficient_gold: "Ouro insuficiente para esta ordem.",
         }[reason] || "Recrutamento indisponível neste momento.";
     }
@@ -594,7 +648,7 @@ export function createGame({callBridge, viewport}) {
                 position.textContent = `ORDEM ${index + 1}`;
                 const unit = document.createElement("strong");
                 unit.className = "command-queue-unit";
-                unit.textContent = item.unitKind === "boat" ? "Embarcação" : "Tropa terrestre";
+                unit.textContent = unitKindName(item.unitKind);
                 const time = document.createElement("span");
                 time.className = "command-queue-time";
                 const progress = document.createElement("span");
@@ -617,7 +671,7 @@ export function createGame({callBridge, viewport}) {
             state.commandFeedback = null;
             renderCommandPanel();
         }
-        if (!building || building.type === "town_center") {
+        if (!building) {
             return;
         }
 
@@ -707,14 +761,13 @@ export function createGame({callBridge, viewport}) {
         }
         armyLandValue.textContent = `${state.army.land} / ${state.army.landCap}`;
         armyBoatValue.textContent = `${state.army.boat} / ${state.army.boatCap}`;
+        armyPioneerValue.textContent = `${state.army.pioneer} / ${state.army.pioneerCap}`;
         commandArmySummary.hidden = !building.isMine;
-        commandCenterSummary.hidden = !isTownCenter;
-        commandQueue.hidden = isTownCenter;
-        commandQueueCount.hidden = isTownCenter;
-        commandRecruitSection.hidden = isTownCenter;
-        byId("command-queue-title").textContent = isTownCenter
-            ? "Resumo do exército"
-            : "Fila de recrutamento";
+        commandCenterSummary.hidden = true;
+        commandQueue.hidden = false;
+        commandQueueCount.hidden = false;
+        commandRecruitSection.hidden = false;
+        byId("command-queue-title").textContent = "Fila de recrutamento";
         commandQueueCount.textContent = `${building.queue.length} / ${COMMAND_QUEUE_LIMIT}`;
         rebuildCommandQueue(building);
 
@@ -723,7 +776,7 @@ export function createGame({callBridge, viewport}) {
             return;
         }
 
-        const kindName = spec.kind === "boat" ? "Embarcação" : "Tropa terrestre";
+        const kindName = unitKindName(spec.kind);
         const intervalSeconds = Math.round(state.tickIntervalMs / 1000);
         commandRecruitKind.textContent = kindName;
         commandRecruitCost.textContent = `${spec.costGold} ouro`;
@@ -747,7 +800,8 @@ export function createGame({callBridge, viewport}) {
         commandRecruitButton.disabled = Boolean(reason) || isPending || state.interactionLocked;
         commandRecruitButton.textContent = isPending
             ? "Enviando ordem…"
-            : spec.kind === "boat" ? "Construir embarcação" : "Treinar tropa";
+            : spec.kind === "boat" ? "Construir embarcação"
+            : spec.kind === "pioneer" ? "Treinar pioneiro" : "Treinar tropa";
         commandRecruitMessage.textContent = feedback
             ? feedback.message
             : isPending
@@ -763,13 +817,23 @@ export function createGame({callBridge, viewport}) {
         if (
             !error ||
             typeof error !== "object" ||
-            error.action !== "recrutar_tropa" ||
             error.revision == null ||
             error.revision === state.lastActionErrorRevision
         ) {
             return;
         }
         state.lastActionErrorRevision = error.revision;
+        if (error.action !== "recrutar_tropa") {
+            if (["explorar_tile", "reivindicar_tile"].includes(error.action)) {
+                state.pendingPioneerAction = null;
+            }
+            if (error.action === "ordenar_tropa") {
+                state.pendingTroopTarget = null;
+            }
+            showActionFeedback(error.message || "A ação foi recusada pelo servidor.");
+            updateTroopSelectionUi();
+            return;
+        }
         const pendingBuildingKey = state.pendingRecruit?.buildingKey || null;
         state.pendingRecruit = null;
         const building = selectedCommandBuilding();
@@ -889,6 +953,14 @@ export function createGame({callBridge, viewport}) {
         return [Number(target[0]), Number(target[1])];
     }
 
+    function normalizeUnitKind(kind) {
+        return ["boat", "pioneer"].includes(kind) ? kind : "land";
+    }
+
+    function unitKindName(kind) {
+        return {boat: "Embarcação", pioneer: "Pioneiro", land: "Tropa terrestre"}[kind];
+    }
+
     function normalizeTroop(rawTroop) {
         if (!rawTroop || typeof rawTroop !== "object" || rawTroop.id == null) {
             return null;
@@ -902,7 +974,7 @@ export function createGame({callBridge, viewport}) {
 
         const maxHp = Math.max(1, Number(rawTroop.max_hp) || 1);
         const hp = Math.max(0, Math.min(maxHp, Number(rawTroop.hp) || 0));
-        const status = ["idle", "moving", "attacking"].includes(rawTroop.status)
+        const status = ["idle", "moving", "attacking", "exploring"].includes(rawTroop.status)
             ? rawTroop.status
             : "idle";
 
@@ -911,7 +983,7 @@ export function createGame({callBridge, viewport}) {
             key: String(rawTroop.id),
             owner: rawTroop.owner == null ? null : String(rawTroop.owner),
             isMine: typeof rawTroop.is_mine === "boolean" ? rawTroop.is_mine : null,
-            kind: rawTroop.kind === "boat" ? "boat" : "land",
+            kind: normalizeUnitKind(rawTroop.kind),
             x,
             y,
             hp,
@@ -974,6 +1046,17 @@ export function createGame({callBridge, viewport}) {
     }
 
     function troopStatusText(troop) {
+        const order = explorationOrderFor(troop);
+        if (order) {
+            const elapsedMs = Math.max(0, performance.now() - state.tickSyncedAtMs);
+            const seconds = Math.max(0, Math.ceil((state.tickRemainingAtSyncMs - elapsedMs) / 1000));
+            return order.waiting_for_start
+                ? `Inicia em ${seconds} s · exploração: 10 s`
+                : `Explorando (${order.x}, ${order.y}) · ${seconds} s`;
+        }
+        if (troop.status === "exploring") {
+            return "Exploração em andamento";
+        }
         const target = troopTarget(troop);
         const destination = target
             ? ` (${Math.trunc(target[0])}, ${Math.trunc(target[1])})`
@@ -1001,20 +1084,31 @@ export function createGame({callBridge, viewport}) {
         const isVisible = Boolean(troop);
 
         troopSelection.hidden = !isVisible;
+        pioneerActions.hidden = troop?.kind !== "pioneer";
         gameScreen.classList.toggle("has-selected-troop", isVisible);
         if (!troop) {
             return;
         }
 
         const healthRatio = Math.max(0, Math.min(1, troop.hp / troop.maxHp));
-        troopSelectionTitle.textContent = troop.kind === "boat"
-            ? "Embarcação"
-            : "Tropa terrestre";
+        troopSelectionTitle.textContent = unitKindName(troop.kind);
         troopHealthValue.textContent = `${Math.ceil(troop.hp)} / ${Math.ceil(troop.maxHp)}`;
         troopHealth.style.setProperty("--troop-health", String(healthRatio));
         troopHealth.setAttribute("aria-valuemax", String(Math.ceil(troop.maxHp)));
         troopHealth.setAttribute("aria-valuenow", String(Math.ceil(troop.hp)));
         troopStatus.textContent = troopStatusText(troop);
+        troopSelection.title = troopIsExploring(troop)
+            ? "Pioneiro ocupado. Fica no lugar até concluir um ciclo completo de exploração."
+            : "";
+        updatePioneerActions();
+    }
+
+    function explorationOrderFor(troop) {
+        return troop ? state.explorationOrders.find((order) => String(order.unit_id) === troop.key) : null;
+    }
+
+    function troopIsExploring(troop) {
+        return Boolean(troop && (troop.status === "exploring" || explorationOrderFor(troop)));
     }
 
     function addTroopEffect(kind, troop, now) {
@@ -1046,6 +1140,9 @@ export function createGame({callBridge, viewport}) {
             return false;
         }
         const name = tileName(state.matrix[y][x]);
+        if (!isExplored(state.matrix[y][x])) {
+            return false;
+        }
         return kind === "boat"
             ? ["water", "dock"].includes(name)
             : !["water", "dock", "mountain", "mine"].includes(name);
@@ -1220,7 +1317,7 @@ export function createGame({callBridge, viewport}) {
         }
         for (const troop of state.troops) {
             if (!nextById.has(troop.key)) {
-                if (state.hasTroopSnapshot) {
+                if (state.hasTroopSnapshot && troopIsMine(troop)) {
                     addTroopEffect("death", troop, now);
                 }
                 state.troopMotions.delete(troop.key);
@@ -1315,6 +1412,13 @@ export function createGame({callBridge, viewport}) {
         if (Array.isArray(snapshot.matrix)) {
             state.matrix = snapshot.matrix;
         }
+        if (snapshot.exploration_rules) {
+            state.explorationRules = {...state.explorationRules, ...snapshot.exploration_rules};
+        }
+        const previousExplorationOrders = state.explorationOrders;
+        if (Array.isArray(snapshot.exploration_orders)) {
+            state.explorationOrders = snapshot.exploration_orders;
+        }
 
         const width = Number(snapshot.width);
         const height = Number(snapshot.height);
@@ -1342,6 +1446,31 @@ export function createGame({callBridge, viewport}) {
         updateTickHud(performance.now());
         applyTroopSnapshot(snapshot);
         applyCommandSnapshot(snapshot);
+        const pending = state.pendingPioneerAction;
+        if (pending) {
+            const cell = state.matrix?.[pending.y]?.[pending.x];
+            const acceptedOrder = state.explorationOrders.find((order) => (
+                String(order.unit_id) === String(pending.unitId) && order.x === pending.x && order.y === pending.y
+            ));
+            const confirmed = pending.action === "explore_tile"
+                ? Boolean(acceptedOrder) || isExplored(cell)
+                : territoryOwner(cell) === state.playerId;
+            if (confirmed) {
+                state.pendingPioneerAction = null;
+                showActionFeedback(pending.action === "explore_tile"
+                    ? acceptedOrder ? "Exploração agendada · 10 s completos a partir do próximo ciclo."
+                        : `Tile (${pending.x}, ${pending.y}) explorado.`
+                    : `Tile (${pending.x}, ${pending.y}) agora pertence ao seu território.`, false);
+            }
+        }
+        for (const order of previousExplorationOrders) {
+            if (!state.explorationOrders.some((next) => String(next.unit_id) === String(order.unit_id)) &&
+                isExplored(state.matrix?.[order.y]?.[order.x])) {
+                showActionFeedback(`Tile (${order.x}, ${order.y}) explorado.`, false);
+            }
+        }
+        updatePioneerActions();
+        updateBuildAvailability();
 
         const spawnPosition = snapshot.spawn_position;
         if (
@@ -1370,12 +1499,180 @@ export function createGame({callBridge, viewport}) {
         if (state.interactionLocked || !state.selectedTile) {
             return;
         }
-        await callBridge(
-            "build_tile",
-            state.selectedTile.x,
-            state.selectedTile.y,
-            tile,
-        );
+        const restriction = buildRestriction(tile);
+        if (restriction) {
+            showActionFeedback(restriction);
+            return;
+        }
+        const {x, y} = state.selectedTile;
+        try {
+            const result = await callBridge("build_tile", x, y, tile);
+            if (!result || result.ok === false) {
+                showActionFeedback("Não foi possível enviar a construção.");
+            }
+        } catch {
+            showActionFeedback("Não foi possível enviar a construção.");
+        }
+    }
+
+    function territoryOwner(cell) {
+        return cell && typeof cell === "object" && cell.territorio != null
+            ? String(cell.territorio) : null;
+    }
+
+    function buildRestriction(type = null) {
+        if (!state.selectedTile) {
+            return "Selecione um tile para construir.";
+        }
+        const {x, y} = state.selectedTile;
+        const radius = type === "town_center" ? 1 : 0;
+        for (let dy = -radius; dy <= radius; dy += 1) {
+            for (let dx = -radius; dx <= radius; dx += 1) {
+                const cell = state.matrix?.[y + dy]?.[x + dx];
+                if (!isExplored(cell)) {
+                    return radius ? "Explore toda a área 3×3 do centro urbano." : "Explore este tile antes de construir.";
+                }
+                if (!state.playerId || territoryOwner(cell) !== state.playerId) {
+                    return radius ? "Reivindique toda a área 3×3 do centro urbano." : "Só é possível construir no seu território.";
+                }
+            }
+        }
+        const builder = state.troops.some((troop) => {
+            if (troop.kind !== "pioneer" || !troopIsMine(troop) || troopIsExploring(troop)) {
+                return false;
+            }
+            const distance = Math.max(Math.abs(troop.x - x), Math.abs(troop.y - y));
+            return distance === radius + 1;
+        });
+        if (!builder) {
+            return radius
+                ? "Posicione um pioneiro junto ao perímetro 3×3, fora da construção."
+                : "É necessário um pioneiro livre em um dos 8 tiles vizinhos.";
+        }
+        return null;
+    }
+
+    function updateBuildAvailability() {
+        const restriction = buildRestriction();
+        buildAvailability.textContent = restriction || "Território próprio · pioneiro adjacente";
+        buildAvailability.classList.toggle("is-unavailable", Boolean(restriction));
+        for (const button of document.querySelectorAll(".build-button")) {
+            const reason = buildRestriction(button.dataset.tile);
+            const affordable = RESOURCE_NAMES.every((resource) => (
+                buildCost(button, resource) <= Number(state.resources[resource])
+            ));
+            // aria-disabled keeps the tooltip and its explanation available to keyboard users.
+            button.setAttribute("aria-disabled", String(Boolean(reason) || !affordable || state.interactionLocked));
+        }
+        if (inspectedBuildButton) {
+            refreshBuildInfoCosts(inspectedBuildButton);
+        }
+    }
+
+    function showActionFeedback(message, isError = true) {
+        actionFeedback.textContent = String(message);
+        actionFeedback.classList.toggle("is-error", isError);
+        actionFeedback.hidden = false;
+        state.feedbackUntil = performance.now() + 5500;
+    }
+
+    function actionCostText(cost) {
+        const names = {gold: "ouro", wood: "madeira", food: "comida"};
+        return RESOURCE_NAMES.filter((resource) => cost[resource] > 0)
+            .map((resource) => `${cost[resource]} ${names[resource]}`).join(" + ");
+    }
+
+    function pioneerActionRestriction(action) {
+        const troop = selectedTroop();
+        const tile = state.selectedTile;
+        if (!troop || troop.kind !== "pioneer") {
+            return "Selecione um pioneiro seu.";
+        }
+        if (state.pendingPioneerAction) {
+            return "Aguardando confirmação da ação enviada.";
+        }
+        if (troopIsExploring(troop)) {
+            return "Pioneiro ocupado explorando.";
+        }
+        if (state.interactionLocked) {
+            return "Feche o menu para continuar.";
+        }
+        if (!tile) {
+            return "Clique em um tile do mapa para escolher o alvo.";
+        }
+        const radius = state.explorationRules.radius;
+        if (Math.max(Math.abs(troop.x - tile.x), Math.abs(troop.y - tile.y)) > radius) {
+            return "Mova o pioneiro: o alvo deve estar na área 3×3 ao redor dele.";
+        }
+        const cell = state.matrix?.[tile.y]?.[tile.x];
+        if (action === "explore_tile" && isExplored(cell)) {
+            return "Este tile já foi explorado.";
+        }
+        if (action === "claim_tile") {
+            if (!isExplored(cell)) {
+                return "Explore este tile antes de reivindicá-lo.";
+            }
+            const owner = territoryOwner(cell);
+            if (owner !== null) {
+                return owner === state.playerId ? "Este território já é seu." : "Este território pertence a outro jogador.";
+            }
+        }
+        const cost = state.explorationRules[action === "explore_tile" ? "explore_cost" : "claim_cost"];
+        if (RESOURCE_NAMES.some((resource) => Number(state.resources[resource]) < cost[resource])) {
+            return `Recursos insuficientes: requer ${actionCostText(cost)}.`;
+        }
+        return null;
+    }
+
+    function updatePioneerActions() {
+        if (selectedTroop()?.kind !== "pioneer") {
+            return;
+        }
+        const tile = state.selectedTile;
+        const cell = tile ? state.matrix?.[tile.y]?.[tile.x] : null;
+        const owner = territoryOwner(cell);
+        const status = !isExplored(cell) ? cell?.preview ? "Sob névoa" : "Desconhecido" : owner === null
+            ? "Território neutro" : owner === state.playerId ? "Seu território" : "Território de outro jogador";
+        pioneerTarget.textContent = tile ? `Alvo (${tile.x}, ${tile.y}) · ${status}` : "Nenhum tile selecionado";
+        const exploreReason = pioneerActionRestriction("explore_tile");
+        const claimReason = pioneerActionRestriction("claim_tile");
+        pioneerExploreCost.textContent = `${actionCostText(state.explorationRules.explore_cost)} · 10 s`;
+        pioneerClaimCost.textContent = actionCostText(state.explorationRules.claim_cost);
+        pioneerExploreButton.disabled = Boolean(exploreReason);
+        pioneerClaimButton.disabled = Boolean(claimReason);
+        pioneerExploreButton.title = exploreReason || "Começa no próximo ciclo. O pioneiro permanece parado por 10 segundos completos.";
+        pioneerClaimButton.title = claimReason || "Reivindique o tile explorado para construir no seu território.";
+        // One contextual line is enough; per-action details remain available on hover/focus.
+        pioneerExploreReason.textContent = exploreReason || "10 s completos, a partir do próximo ciclo.";
+        pioneerExploreReason.hidden = Boolean(exploreReason && !claimReason);
+        pioneerClaimReason.textContent = claimReason || "";
+        pioneerClaimReason.hidden = true;
+    }
+
+    async function pioneerAction(action) {
+        const reason = pioneerActionRestriction(action);
+        if (reason) {
+            showActionFeedback(reason);
+            return;
+        }
+        const troop = selectedTroop();
+        // Capture the clicked target: selection may change while the bridge is awaiting a response.
+        const pending = {action, unitId: troop.id, ...state.selectedTile, sentAt: performance.now()};
+        state.pendingPioneerAction = pending;
+        updatePioneerActions();
+        try {
+            const result = await callBridge(action, pending.unitId, pending.x, pending.y);
+            if ((!result || result.ok === false) && state.pendingPioneerAction === pending) {
+                state.pendingPioneerAction = null;
+                showActionFeedback("Não foi possível enviar a ação do pioneiro.");
+            }
+        } catch {
+            if (state.pendingPioneerAction === pending) {
+                state.pendingPioneerAction = null;
+                showActionFeedback("Não foi possível enviar a ação do pioneiro.");
+            }
+        }
+        updatePioneerActions();
     }
 
     function logicalPoint(clientX, clientY) {
@@ -1457,7 +1754,7 @@ export function createGame({callBridge, viewport}) {
         }
         state.selectedTroopId = troop.key;
         state.pendingTroopTarget = null;
-        state.selectedTile = null;
+        state.selectedTile = troop.kind === "pioneer" ? {x: troop.x, y: troop.y} : null;
         state.panelMode = "build";
         state.selectedCommandBuildingKey = null;
         state.pendingRecruit = null;
@@ -1470,6 +1767,14 @@ export function createGame({callBridge, viewport}) {
     async function commandSelectedTroop(tile) {
         const troop = selectedTroop();
         if (!troop || state.interactionLocked) {
+            return;
+        }
+        if (troopIsExploring(troop) || state.pendingPioneerAction?.unitId === troop.id) {
+            showActionFeedback("O pioneiro precisa concluir a exploração antes de se mover.");
+            return;
+        }
+        if (!isExplored(state.matrix?.[tile.y]?.[tile.x])) {
+            showActionFeedback("Explore este tile antes de mover a unidade.");
             return;
         }
 
@@ -1519,9 +1824,10 @@ export function createGame({callBridge, viewport}) {
             state.buildOpen = !state.buildOpen;
         } else {
             state.selectedTile = {x: tileX, y: tileY};
-            state.buildOpen = true;
+            state.buildOpen = selectedTroop()?.kind !== "pioneer";
         }
         setBuildVisibility();
+        updatePioneerActions();
     }
 
     function clampCamera() {
@@ -1564,7 +1870,11 @@ export function createGame({callBridge, viewport}) {
         if (cell && typeof cell === "object" && typeof cell.tile === "string") {
             return cell.tile;
         }
-        return "grass";
+        return null;
+    }
+
+    function isExplored(cell) {
+        return Boolean(tileName(cell)) && cell?.preview !== true;
     }
 
     function imageIsReady(image) {
@@ -1679,6 +1989,26 @@ export function createGame({callBridge, viewport}) {
             seed % 2 ? palette.accent : palette.main,
         );
         drawPixelRect(center, -6, 5, 12, 1, palette.bright);
+    }
+
+    function drawPioneerTroop(center, palette) {
+        // One worker with a teal coat, travel pack and a raised brass pickaxe.
+        const pixel = (x, y, width, height, color) => {
+            context.fillStyle = color;
+            context.fillRect(center.x + x * state.zoom, center.y + y * state.zoom,
+                width * state.zoom, height * state.zoom);
+        };
+        pixel(-7, 7, 15, 3, "rgba(10, 16, 20, 0.5)");
+        pixel(-7, -2, 5, 8, "#704720");
+        pixel(-4, -1, 9, 8, "#15282e");
+        pixel(-3, 0, 7, 6, "#69c9b1");
+        pixel(-3, -6, 6, 5, "#edc691");
+        pixel(-5, -7, 10, 2, palette.bright);
+        pixel(-3, -9, 6, 3, palette.main);
+        pixel(-3, 7, 3, 3, "#302219");
+        pixel(2, 7, 3, 3, "#302219");
+        pixel(6, -5, 2, 12, "#a67a40");
+        pixel(3, -7, 9, 3, "#fff0b5");
     }
 
     function troopPathScreenPoint(position, offset) {
@@ -1901,6 +2231,9 @@ export function createGame({callBridge, viewport}) {
             if (troop.kind === "boat") {
                 drawBoatWake(center, visual, now);
                 drawBoatTroop(troop, center, palette, seed);
+            } else if (troop.kind === "pioneer") {
+                drawLandDust(center, visual, seed, now);
+                drawPioneerTroop(center, palette);
             } else {
                 drawLandDust(center, visual, seed, now);
                 drawLandTroop(troop, center, palette, seed);
@@ -1957,6 +2290,18 @@ export function createGame({callBridge, viewport}) {
 
     function drawWorld(now = performance.now()) {
         context.clearRect(0, 0, state.viewportWidth, state.viewportHeight);
+        if (state.mapHelpUntil && now >= state.mapHelpUntil) {
+            setMapHelpVisible(false);
+        }
+        if (state.feedbackUntil && now >= state.feedbackUntil) {
+            actionFeedback.hidden = true;
+            state.feedbackUntil = 0;
+        }
+        if (state.pendingPioneerAction && now - state.pendingPioneerAction.sentAt > 5000) {
+            state.pendingPioneerAction = null;
+            showActionFeedback("A confirmação demorou. Verifique o tile antes de tentar novamente.");
+            updatePioneerActions();
+        }
 
         if (!state.matrix || state.worldWidth <= 0 || state.worldHeight <= 0) {
             return;
@@ -1981,15 +2326,37 @@ export function createGame({callBridge, viewport}) {
             }
 
             for (let x = startX; x < endX; x += 1) {
-                const image = tileImages[tileName(row[x])] || tileImages.grass;
-                if (!imageIsReady(image)) {
-                    continue;
-                }
-
+                const name = tileName(row[x]);
                 const screenX = Math.trunc((x * TILE_SIZE - state.cameraX) * state.zoom);
                 const screenY = Math.trunc((y * TILE_SIZE - state.cameraY) * state.zoom);
-                context.drawImage(image, screenX, screenY, scaledSize, scaledSize);
+                if (!name) {
+                    context.fillStyle = "#141c28";
+                    context.fillRect(screenX, screenY, scaledSize, scaledSize);
+                    continue;
+                }
+                const image = tileImages[name];
+                if (imageIsReady(image)) {
+                    context.drawImage(image, screenX, screenY, scaledSize, scaledSize);
+                }
+                if (row[x]?.preview === true) {
+                    context.fillStyle = "rgba(20, 28, 40, 0.72)";
+                    context.fillRect(screenX, screenY, scaledSize, scaledSize);
+                } else {
+                    drawTerritory(row[x], x, y, screenX, screenY, scaledSize);
+                }
             }
+        }
+
+        const pioneer = selectedTroop();
+        if (pioneer?.kind === "pioneer") {
+            context.save();
+            context.strokeStyle = "rgba(143, 237, 214, 0.8)";
+            context.lineWidth = 2;
+            context.setLineDash([5, 4]);
+            context.strokeRect(((pioneer.x - 1) * TILE_SIZE - state.cameraX) * state.zoom,
+                ((pioneer.y - 1) * TILE_SIZE - state.cameraY) * state.zoom,
+                3 * TILE_SIZE * state.zoom, 3 * TILE_SIZE * state.zoom);
+            context.restore();
         }
 
         if (state.selectedTile && imageIsReady(selectedImage)) {
@@ -2003,7 +2370,46 @@ export function createGame({callBridge, viewport}) {
 
         drawTroopOrder(now);
         drawTroops(now);
+        drawExplorationOrders();
         drawTroopEffects(now);
+    }
+
+    function drawExplorationOrders() {
+        for (const order of state.explorationOrders) {
+            const troop = state.troops.find((unit) => unit.key === String(order.unit_id));
+            if (!troop || !troopIsMine(troop)) continue;
+            const x = ((troop.x + 0.5) * TILE_SIZE - state.cameraX) * state.zoom;
+            const y = (troop.y * TILE_SIZE - state.cameraY) * state.zoom - 5;
+            const elapsedMs = Math.max(0, performance.now() - state.tickSyncedAtMs);
+            const remainingMs = Math.max(0, state.tickRemainingAtSyncMs - elapsedMs);
+            const progress = order.waiting_for_start ? 0 : 1 - remainingMs / state.tickIntervalMs;
+            context.fillStyle = "#15232d";
+            context.fillRect(x - 13, y, 26, 4);
+            context.fillStyle = order.waiting_for_start ? "#e6c77d" : "#92c6ee";
+            context.fillRect(x - 12, y + 1, Math.max(2, 24 * progress), 2);
+        }
+    }
+
+    function drawTerritory(cell, x, y, screenX, screenY, size) {
+        const owner = territoryOwner(cell);
+        if (owner !== null) {
+            const mine = owner === state.playerId;
+            context.fillStyle = mine ? "rgba(99, 171, 218, 0.15)" : "rgba(231, 119, 112, 0.18)";
+            context.fillRect(screenX, screenY, size, size);
+            context.strokeStyle = mine ? "#7dbce4" : "#ef8c86";
+            context.lineWidth = Math.max(1, state.zoom);
+            context.beginPath();
+            for (const [dx, dy, x1, y1, x2, y2] of [
+                [0, -1, 0, 0, size, 0], [1, 0, size, 0, size, size],
+                [0, 1, 0, size, size, size], [-1, 0, 0, 0, 0, size],
+            ]) {
+                if (territoryOwner(state.matrix?.[y + dy]?.[x + dx]) !== owner) {
+                    context.moveTo(screenX + x1, screenY + y1);
+                    context.lineTo(screenX + x2, screenY + y2);
+                }
+            }
+            context.stroke();
+        }
     }
 
     listen(canvas, "pointerdown", (event) => {
@@ -2015,8 +2421,18 @@ export function createGame({callBridge, viewport}) {
         if (point) {
             event.preventDefault();
             const troop = troopAtPoint(point);
+            const tile = tileAtPoint(point);
+            const cell = tile ? state.matrix?.[tile.y]?.[tile.x] : null;
+            const building = tile ? commandBuildingAt(tile.x, tile.y) : null;
+            const builtTile = isExplored(cell) && ["town_center", "city", "guard_house", "dock", "mine", "lumberjack_cabin", "madeireiro"].includes(tileName(cell));
             if (troop && troopIsMine(troop)) {
                 selectTroop(troop);
+            } else if (builtTile || building) {
+                clearTroopSelection();
+                if (building) selectCommandBuilding(building);
+                else selectTile(point);
+            } else if (selectedTroop()?.kind === "pioneer") {
+                selectTile(point);
             } else {
                 clearTroopSelection();
                 if (troop) {
@@ -2169,8 +2585,17 @@ export function createGame({callBridge, viewport}) {
         setBuildVisibility();
     }));
     disposers.push(bindPrimaryAction(commandPanelBack, returnToBuildPanel));
+    disposers.push(bindPrimaryAction(troopSelectionClose, clearTroopSelection));
+    disposers.push(bindPrimaryAction(mapHelpToggle, () => setMapHelpVisible(mapHelp.hidden)));
+    disposers.push(bindPrimaryAction(mapHelpClose, () => setMapHelpVisible(false)));
     disposers.push(bindPrimaryAction(commandRecruitButton, () => {
         void recruitSelectedBuilding();
+    }));
+    disposers.push(bindPrimaryAction(pioneerExploreButton, () => {
+        void pioneerAction("explore_tile");
+    }));
+    disposers.push(bindPrimaryAction(pioneerClaimButton, () => {
+        void pioneerAction("claim_tile");
     }));
 
     for (const button of document.querySelectorAll(".build-button")) {
@@ -2199,6 +2624,10 @@ export function createGame({callBridge, viewport}) {
         if (state.visible) {
             updateTickHud(time);
             updateCommandQueueTiming(time);
+            if (troopIsExploring(selectedTroop())) {
+                const status = troopStatusText(selectedTroop());
+                if (troopStatus.textContent !== status) troopStatus.textContent = status;
+            }
             if (!state.interactionLocked) {
                 updateCamera(deltaSeconds);
             }

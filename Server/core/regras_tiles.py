@@ -1,6 +1,7 @@
 import core.world as world
 import core.tile as tile
 import core.troops as troops
+import core.exploration as exploration
 from core.state import state
 
 def construir_em_matriz(data):
@@ -34,6 +35,21 @@ def construir_em_matriz(data):
         return False
 
     player_id = data["player_id"]
+    if data["tile"] == "town_center":
+        if x < 1 or y < 1 or x + 1 >= len(state.matriz[0]) or y + 1 >= len(state.matriz):
+            return False
+        positions = {(px, py) for py in range(y - 1, y + 2) for px in range(x - 1, x + 2)}
+    else:
+        positions = {(x, y)}
+    if not exploration.can_build(player_id, positions):
+        return False
+    # Protege de terraformacao a faixa de combate ao redor de toda a obra.
+    if any(
+        tropa.hp > 0 and tropa.owner != player_id
+        and any(abs(tropa.x - px) <= 1 and abs(tropa.y - py) <= 1 for px, py in positions)
+        for tropa in state.troops.values()
+    ):
+        return False
     tile_atual = state.matriz[y][x]
     if tile_atual.current_player not in (None, player_id):
         return False
@@ -42,17 +58,6 @@ def construir_em_matriz(data):
         for tropa in state.troops.values()
     ):
         return False
-    if any(
-        tropa.hp > 0
-        and tropa.owner != player_id
-        and abs(tropa.x - x) <= 1
-        and abs(tropa.y - y) <= 1
-        for tropa in state.troops.values()
-    ):
-        # A faixa imediata ao redor de uma unidade inimiga e zona de combate,
-        # nao um atalho para aprisiona-la com terraformacao instantanea.
-        return False
-
     revisao_anterior = state.world_revision
 
     if data["tile"] == "grass":
@@ -97,6 +102,7 @@ def _trocar_e_registrar(data, pos, nova_construcao):
         x, y = pos
         tile_atual = state.matriz[y][x]
 
+        nova_construcao.base_terrain = exploration.terrain_name(tile_atual)
         assinatura_anterior = _assinatura_terreno(tile_atual)
         assinatura_nova = _assinatura_terreno(nova_construcao)
 

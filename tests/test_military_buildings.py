@@ -53,6 +53,11 @@ class MilitaryBuildingTests(unittest.TestCase):
             state.matriz_dict = world.transformar_matriz_em_dict(state.matriz)
             state.world_revision = 0
             troops.reset()
+            for participant in state.players.values():
+                participant.explored_tiles = {(x, y) for x in range(3) for y in range(3)}
+            state.territory_owners = {position: owner.id for position in owner.explored_tiles}
+            state.territory_owners[(1, 1)] = enemy.id
+            troops._new_troop(owner.id, troops.PIONEER, 0, 1)
 
             payload = {
                 "tipo": "construir",
@@ -109,9 +114,14 @@ class MilitaryBuildingTests(unittest.TestCase):
             state.world_revision = 0
             state.terrain_revision = 0
             troops.reset()
+            for participant in state.players.values():
+                participant.explored_tiles = {(x, y) for x in range(5) for y in range(5)}
+            state.territory_owners = {position: builder.id for position in builder.explored_tiles}
+            pioneer = troops._new_troop(builder.id, troops.PIONEER, 1, 0)
             troops._new_troop(enemy.id, troops.LAND, 2, 2)
 
             for x, y in ((2, 1), (3, 2), (2, 3), (1, 2)):
+                pioneer.x, pioneer.y = x - 1, y - 1
                 error, phase = process_game_action(
                     {"tipo": "construir", "tile": "water", "x, y": [x, y]},
                     builder.id,
@@ -123,6 +133,7 @@ class MilitaryBuildingTests(unittest.TestCase):
 
             # Longe do combate, terraformar continua permitido, mas deixa de
             # ser gratuito e invalida a conectividade uma unica vez.
+            pioneer.x, pioneer.y = 1, 0
             error, phase = process_game_action(
                 {"tipo": "construir", "tile": "water", "x, y": [0, 0]},
                 builder.id,
@@ -130,10 +141,11 @@ class MilitaryBuildingTests(unittest.TestCase):
             assert error is None and phase == "game"
             assert builder.recursos.gold == 460
             assert state.world_revision == state.terrain_revision == 1
-            components = troops._terrain_components(troops.LAND)
+            components = troops._terrain_components(troops.LAND, builder.id)
 
             # Grass -> City muda o snapshot visual, mas nao a passabilidade;
             # o cache de caminhos deve permanecer valido.
+            pioneer.x, pioneer.y = 3, 4
             error, phase = process_game_action(
                 {"tipo": "construir", "tile": "city", "x, y": [4, 4]},
                 builder.id,
@@ -141,7 +153,7 @@ class MilitaryBuildingTests(unittest.TestCase):
             assert error is None and phase == "game"
             assert state.world_revision == 2
             assert state.terrain_revision == 1
-            assert troops._terrain_components(troops.LAND) is components
+            assert troops._terrain_components(troops.LAND, builder.id) is components
             """,
         )
 
@@ -152,6 +164,7 @@ class MilitaryBuildingTests(unittest.TestCase):
             import core.player as player
             import core.regras_tiles as regras_tiles
             import core.tile as tile
+            import core.troops as troops
             import core.world as world
             from core.state import state
 
@@ -172,6 +185,12 @@ class MilitaryBuildingTests(unittest.TestCase):
             state.matriz[1][2] = cidade_inimiga
             state.matriz_dict = world.transformar_matriz_em_dict(state.matriz)
             state.world_revision = 0
+            for participant in state.players.values():
+                participant.explored_tiles = {(x, y) for x in range(3) for y in range(3)}
+            state.territory_owners = {position: dono.id for position in dono.explored_tiles}
+            state.territory_owners[(2, 1)] = inimigo.id
+            troops.reset()
+            troops._new_troop(dono.id, troops.PIONEER, 0, 1)
 
             def construir(x, y):
                 regras_tiles.construir_em_matriz({
@@ -227,6 +246,7 @@ class MilitaryBuildingTests(unittest.TestCase):
             import core.player as player
             import core.regras_tiles as regras_tiles
             import core.tile as tile
+            import core.troops as troops
             import core.world as world
             from core.state import state
 
@@ -243,6 +263,12 @@ class MilitaryBuildingTests(unittest.TestCase):
             state.matriz[2][0] = tile.Water(current_player=inimigo.id)
             state.matriz_dict = world.transformar_matriz_em_dict(state.matriz)
             state.world_revision = 0
+            for participant in state.players.values():
+                participant.explored_tiles = {(x, y) for x in range(4) for y in range(3)}
+            state.territory_owners = {position: dono.id for position in dono.explored_tiles}
+            state.territory_owners[(0, 2)] = inimigo.id
+            troops.reset()
+            troops._new_troop(dono.id, troops.PIONEER, 0, 1)
 
             def construir(x, y):
                 regras_tiles.construir_em_matriz({

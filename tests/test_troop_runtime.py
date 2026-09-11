@@ -27,6 +27,119 @@ def run_isolated(source):
 
 
 class TroopRuntimeTests(unittest.TestCase):
+    def test_fog_rejects_hidden_targets_and_paths_then_updates_exploration_cache(self):
+        run_isolated(
+            """
+            import core.player as player
+            import core.tile as tile
+            import core.troops as troops
+            from core.state import state
+
+            owner = player.Player("owner", None, 1, True)
+            enemy = player.Player("enemy", None, 2)
+            state.players = {owner.id: owner, enemy.id: enemy}
+            state.matriz = [[tile.Grass() for _ in range(7)]]
+            owner.explored_tiles = {(0, 0), (1, 0), (3, 0)}
+            enemy.explored_tiles = {(x, 0) for x in range(7)}
+            troops.reset()
+            unit = troops._new_troop(owner.id, troops.LAND, 0, 0)
+            hidden = troops._new_troop(enemy.id, troops.LAND, 6, 0)
+            hidden.target = (5, 0)
+
+            # Nem terreno nem presenca inimiga podem alterar o erro oculto.
+            for terrain in (tile.Grass(), tile.Water(None)):
+                state.matriz[0][6] = terrain
+                try:
+                    troops.issue_order(owner.id, unit.id, 6, 0)
+                except troops.TroopActionError as exc:
+                    assert exc.code == "unexplored_destination"
+                else:
+                    raise AssertionError("ordem revelou destino desconhecido")
+            assert [item["id"] for item in troops.snapshot(owner.id)] == [unit.id]
+
+            try:
+                troops.issue_order(owner.id, unit.id, 3, 0)
+            except troops.TroopActionError as exc:
+                assert exc.code == "unreachable_destination"
+            else:
+                raise AssertionError("caminho cruzou tile nao explorado")
+            first_components = troops._terrain_components(troops.LAND, owner.id)
+            assert troops._terrain_components(troops.LAND, enemy.id) is not first_components
+
+            owner.explored_tiles.add((2, 0))
+            state.territory_owners = {(2, 0): enemy.id, (3, 0): enemy.id}
+            troops.issue_order(owner.id, unit.id, 3, 0)
+            assert troops._terrain_components(troops.LAND, owner.id) is not first_components
+            known_before = set(owner.explored_tiles)
+            state.troops.pop(hidden.id)
+            troops.process_tick(1)
+            assert (unit.x, unit.y) == (2, 0)
+            assert owner.explored_tiles == known_before
+
+            visible_enemy = troops._new_troop(enemy.id, troops.LAND, 3, 0)
+            visible_enemy.target = (5, 0)
+            public = {item["id"]: item for item in troops.snapshot(owner.id)}
+            assert public[visible_enemy.id]["target"] is None
+            assert public[unit.id]["target"] == [3, 0]
+            """
+        )
+
+    def test_combat_respects_knowledge_and_pioneers_never_attack_or_aggro(self):
+        run_isolated(
+            """
+            import core.player as player
+            import core.tile as tile
+            import core.troops as troops
+            from core.state import state
+
+            owner = player.Player("owner", None, 1, True)
+            enemy = player.Player("enemy", None, 2)
+            state.players = {owner.id: owner, enemy.id: enemy}
+            state.matriz = [[tile.Grass() for _ in range(4)] for _ in range(2)]
+            owner.explored_tiles = {(0, 0)}
+            enemy.explored_tiles = {(1, 0)}
+            troops.reset()
+            soldier = troops._new_troop(owner.id, troops.LAND, 0, 0)
+            opponent = troops._new_troop(enemy.id, troops.LAND, 1, 0)
+            troops.process_tick(1)
+            assert soldier.hp == opponent.hp == 12
+            assert soldier.target is opponent.target is None
+
+            owner.explored_tiles.add((1, 0))
+            troops.process_tick(2)
+            assert opponent.hp == 8 and soldier.hp == 12
+            assert soldier.target_unit_id == opponent.id
+
+            # O alvo saiu para uma casa desconhecida: so a ultima posicao
+            # conhecida pode continuar disponivel para a tropa perseguidora.
+            opponent.x = 3
+            troops._refresh_targets()
+            assert soldier.target is None
+            assert soldier.target_unit_id is None
+
+            troops.reset()
+            known = {(x, y) for x in range(4) for y in range(2)}
+            owner.explored_tiles = set(known)
+            enemy.explored_tiles = set(known)
+            pioneer = troops._new_troop(owner.id, troops.PIONEER, 0, 0)
+            opponent = troops._new_troop(enemy.id, troops.LAND, 1, 0)
+            troops.process_tick(3)
+            assert pioneer.hp == 6 and opponent.hp == 12
+            assert pioneer.target is None and pioneer.status == "idle"
+            assert (pioneer.x, pioneer.y) == (0, 0)
+            try:
+                troops.issue_order(owner.id, pioneer.id, opponent.x, opponent.y)
+            except troops.TroopActionError as exc:
+                assert exc.code == "cannot_attack"
+            else:
+                raise AssertionError("pioneiro recebeu ordem de ataque")
+            state.troops.pop(opponent.id)
+            troops.issue_order(owner.id, pioneer.id, 3, 0)
+            troops.process_tick(4)
+            assert (pioneer.x, pioneer.y) == (2, 0)
+            """
+        )
+
     def test_guard_and_dock_never_produce_without_manual_recruitment(self):
         run_isolated(
             """
@@ -55,6 +168,10 @@ class TroopRuntimeTests(unittest.TestCase):
                     tile.Water(None),
                 ],
             ]
+            for participant in state.players.values():
+                participant.explored_tiles = {
+                    (x, y) for y, row in enumerate(state.matriz) for x in range(len(row))
+                }
             troops.reset()
 
             for tick_number in range(1, 41):
@@ -82,6 +199,10 @@ class TroopRuntimeTests(unittest.TestCase):
                 [tile.Water(None) for _ in range(6)],
             ]
             state.matriz_dict = [[{"tile": "grass", "dono": None} for _ in range(6)]]
+            for participant in state.players.values():
+                participant.explored_tiles = {
+                    (x, y) for y, row in enumerate(state.matriz) for x in range(len(row))
+                }
             troops.reset()
             unit = troops._new_troop(first.id, troops.LAND, 0, 0)
             boat = troops._new_troop(first.id, troops.BOAT, 0, 1)
@@ -137,6 +258,10 @@ class TroopRuntimeTests(unittest.TestCase):
             owner = player.Player("owner", None, 1, True)
             state.players = {owner.id: owner}
             state.matriz = [[tile.Grass(), tile.Water(None), tile.Grass()]]
+            for participant in state.players.values():
+                participant.explored_tiles = {
+                    (x, y) for y, row in enumerate(state.matriz) for x in range(len(row))
+                }
             troops.reset()
             unit = troops._new_troop(owner.id, troops.LAND, 0, 0)
 
@@ -170,6 +295,10 @@ class TroopRuntimeTests(unittest.TestCase):
             second = player.Player("second", None, 2)
             state.players = {first.id: first, second.id: second}
             state.matriz = [[tile.Grass() for _ in range(8)] for _ in range(3)]
+            for participant in state.players.values():
+                participant.explored_tiles = {
+                    (x, y) for y, row in enumerate(state.matriz) for x in range(len(row))
+                }
             troops.reset()
 
             left = troops._new_troop(first.id, troops.LAND, 0, 1)
@@ -211,6 +340,10 @@ class TroopRuntimeTests(unittest.TestCase):
                 [tile.Grass(), tile.Water(None), tile.Grass()]
                 for _ in range(7)
             ]
+            for participant in state.players.values():
+                participant.explored_tiles = {
+                    (x, y) for y, row in enumerate(state.matriz) for x in range(len(row))
+                }
             troops.reset()
             hunter = troops._new_troop(first.id, troops.LAND, 0, 2)
             blocked = troops._new_troop(second.id, troops.LAND, 2, 2)
@@ -251,6 +384,10 @@ class TroopRuntimeTests(unittest.TestCase):
                 [tile.Grass(), tile.Grass(), tile.Water(None), tile.Dock(owner.id)],
                 [tile.Grass(), tile.Grass(), tile.Water(None), tile.Water(None)],
             ]
+            for participant in state.players.values():
+                participant.explored_tiles = {
+                    (x, y) for y, row in enumerate(state.matriz) for x in range(len(row))
+                }
             troops.reset()
             troops.recruit(owner.id, 1, 0)
             troops.recruit(owner.id, 3, 1)
@@ -285,9 +422,15 @@ class TroopRuntimeTests(unittest.TestCase):
             owner = player.Player("owner", None, 1, True)
             state.players = {owner.id: owner}
             state.matriz = [[tile.Grass()]]
+            for participant in state.players.values():
+                participant.explored_tiles = {
+                    (x, y) for y, row in enumerate(state.matriz) for x in range(len(row))
+                }
             troops.reset()
             troops._new_troop(owner.id, troops.LAND, 0, 0)
             assert state.next_troop_id == 2
+
+            state.territory_owners = {(0, 0): owner.id}
 
             matrix = [[tile.Water(None)]]
             world.publicar_mundo(
@@ -300,6 +443,8 @@ class TroopRuntimeTests(unittest.TestCase):
             )
             assert state.troops == {}
             assert state.next_troop_id == 1
+            assert state.territory_owners == {}
+            assert owner.explored_tiles == set()
             """
         )
 
@@ -319,6 +464,10 @@ class TroopRuntimeTests(unittest.TestCase):
                 [tile.Grass() for _ in range(200)]
                 for _ in range(200)
             ]
+            for participant in state.players.values():
+                participant.explored_tiles = {
+                    (x, y) for y, row in enumerate(state.matriz) for x in range(len(row))
+                }
             troops.reset()
             for index in range(24):
                 unit = troops._new_troop(
@@ -347,6 +496,10 @@ class TroopRuntimeTests(unittest.TestCase):
                 for _ in range(200)
             ]
             state.world_revision += 1
+            for participant in state.players.values():
+                participant.explored_tiles = {
+                    (x, y) for y, row in enumerate(state.matriz) for x in range(len(row))
+                }
             troops.reset()
             for index in range(24):
                 unit = troops._new_troop(

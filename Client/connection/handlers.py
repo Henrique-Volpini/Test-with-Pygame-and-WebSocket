@@ -12,16 +12,18 @@ from core.state import state
 COMMAND_BUILDING_TYPES = frozenset(
     {"town_center", "guard_house", "dock"}
 )
-COMMAND_UNIT_KINDS = frozenset({"land", "boat"})
+COMMAND_UNIT_KINDS = frozenset({"land", "boat", "pioneer"})
 COMMAND_UNIT_RULES = {
     "land": {"total_ticks": 2, "cost_gold": 75},
     "boat": {"total_ticks": 3, "cost_gold": 120},
+    "pioneer": {"total_ticks": 1, "cost_gold": 60},
 }
 COMMAND_QUEUE_LIMIT = 5
-COMMAND_ARMY_CAPS = {"land": 24, "boat": 12}
+COMMAND_ARMY_CAPS = {"land": 24, "boat": 12, "pioneer": 8}
 COMMAND_BUILDING_UNIT_KIND = {
     "guard_house": "land",
     "dock": "boat",
+    "town_center": "pioneer",
 }
 COMMAND_UNAVAILABLE_REASONS = frozenset(
     {
@@ -129,7 +131,7 @@ def _validar_tropas(value, player_id, largura, altura):
             or not owner
             or len(owner) > 256
             or not isinstance(is_mine, bool)
-            or kind not in ("land", "boat")
+            or kind not in ("land", "boat", "pioneer")
             or isinstance(x, bool)
             or not isinstance(x, int)
             or isinstance(y, bool)
@@ -142,7 +144,8 @@ def _validar_tropas(value, player_id, largura, altura):
             or not isinstance(max_hp, int)
             or not 0 <= hp <= max_hp
             or not 1 <= max_hp <= 1_000_000
-            or status not in ("idle", "moving", "attacking")
+            or status not in ("idle", "moving", "attacking", "exploring")
+            or (status == "exploring" and kind != "pioneer")
             or (
                 player_id is not None
                 and is_mine != (owner == player_id)
@@ -331,7 +334,7 @@ def _validar_army(value):
     if not isinstance(value, dict):
         return False
 
-    keys = ("land", "boat", "land_cap", "boat_cap")
+    keys = ("land", "boat", "pioneer", "land_cap", "boat_cap", "pioneer_cap")
     if not all(key in value for key in keys):
         return False
     if any(
@@ -341,7 +344,7 @@ def _validar_army(value):
         for key in keys
     ):
         return False
-    if value["land"] > value["land_cap"] or value["boat"] > value["boat_cap"]:
+    if any(value[kind] > value[f"{kind}_cap"] for kind in COMMAND_UNIT_KINDS):
         return False
     if any(
         value[f"{kind}_cap"] != cap
@@ -410,10 +413,54 @@ def _validar_consistencia_militar(tropas, buildings, army, recursos):
     return True
 
 
+def _validar_exploracoes(value, tropas, largura, altura):
+    if not isinstance(value, list) or len(value) > COMMAND_ARMY_CAPS["pioneer"]:
+        return False
+    own_units = {unit["id"]: unit for unit in tropas or [] if unit["is_mine"]}
+    orders = []
+    seen = set()
+    for item in value:
+        if not isinstance(item, dict):
+            return False
+        unit_id = item.get("unit_id")
+        x, y = item.get("x"), item.get("y")
+        if (
+            not isinstance(unit_id, str) or not unit_id or len(unit_id) > 64 or unit_id in seen
+            or type(x) is not int or type(y) is not int
+            or not (0 <= x < largura and 0 <= y < altura)
+            or type(item.get("remaining_ticks")) is not int or item["remaining_ticks"] != 1
+            or type(item.get("total_ticks")) is not int or item["total_ticks"] != 1
+            or not isinstance(item.get("waiting_for_start"), bool)
+        ):
+            return False
+        unit = own_units.get(unit_id)
+        if unit is None or unit["kind"] != "pioneer" or unit["hp"] <= 0 or unit["status"] != "exploring":
+            return False
+        seen.add(unit_id)
+        orders.append({key: item[key] for key in ("unit_id", "x", "y", "remaining_ticks", "total_ticks", "waiting_for_start")})
+    if any(unit["status"] == "exploring" and unit_id not in seen for unit_id, unit in own_units.items()):
+        return False
+    return orders
+
+
 def _aplicar_snapshot(data):
     recebido_em = time.monotonic()
     if data.get("fase") != "game":
         return False
+
+    rules = data.get("exploration_rules")
+    if rules is not None:
+        if not isinstance(rules, dict) or type(rules.get("radius")) is not int or rules["radius"] != 1:
+            return False
+        if type(rules.get("total_ticks", 1)) is not int or rules.get("total_ticks", 1) != 1:
+            return False
+        for key in ("explore_cost", "claim_cost"):
+            cost = rules.get(key)
+            if not isinstance(cost, dict) or any(
+                type(cost.get(resource)) is not int or cost[resource] < 0
+                for resource in ("gold", "wood", "food")
+            ):
+                return False
 
     relogio = _validar_relogio(data)
     if relogio is False:
@@ -471,6 +518,12 @@ def _aplicar_snapshot(data):
     )
     if tropas is False:
         return False
+
+    exploration_orders = None
+    if "exploration_orders" in data:
+        exploration_orders = _validar_exploracoes(data["exploration_orders"], tropas, largura_tropas, altura_tropas)
+        if exploration_orders is False:
+            return False
 
     command_buildings = None
     if "command_buildings" in data:
@@ -544,6 +597,15 @@ def _aplicar_snapshot(data):
             state.command_buildings = command_buildings
         if army is not None:
             state.army = army
+        if exploration_orders is not None:
+            state.exploration_orders = exploration_orders
+        if rules is not None:
+            state.exploration_rules = {
+                "radius": rules["radius"],
+                "total_ticks": rules.get("total_ticks", 1),
+                "explore_cost": dict(rules["explore_cost"]),
+                "claim_cost": dict(rules["claim_cost"]),
+            }
         if relogio is not None:
             state.match_time_ms = relogio["match_time_ms"]
             state.tick_interval_ms = relogio["tick_interval_ms"]
@@ -629,9 +691,9 @@ def _aplicar_lobby(data):
         return False
 
     with state.lock:
-        if matriz is None and not state.matriz_pronta:
-            return False
         state.server_phase = "lobby"
+        state.largura_grid = largura
+        state.altura_grid = altura
         state.estado_jogo = "lobby"
         state.iniciando_partida = False
         state.partida_criada = False

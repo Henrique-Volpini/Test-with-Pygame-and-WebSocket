@@ -332,4 +332,6 @@ def posicionar_jogadores(matriz, jogadores):
                 matriz[y][x] = construcao
                 jogador.registrar_construcao(construcao, (x, y))
 
+    from core.exploration import initialize_players
+    initialize_players(matriz, jogadores)
     return resultado

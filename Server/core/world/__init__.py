@@ -97,6 +97,10 @@ def publicar_mundo(matriz, matriz_dict, largura, altura, seed, parametros=None):
     state.next_troop_id = 1
     state.recruitment_queues = {}
     state.next_recruitment_id = 1
+    state.territory_owners = {}
+    state.exploration_orders = {}
+    for jogador in state.players.values():
+        jogador.explored_tiles = set()
     state.terrain_revision += 1
     state.world_revision += 1
 

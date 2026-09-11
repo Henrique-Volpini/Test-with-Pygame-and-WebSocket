@@ -9,13 +9,23 @@ from collections import defaultdict, deque
 from dataclasses import dataclass
 from heapq import heappop, heappush
 
+from core.exploration import is_busy, is_explored
 from core.state import state
 
 
 LAND = "land"
 BOAT = "boat"
+PIONEER = "pioneer"
 
 UNIT_STATS = {
+    PIONEER: {
+        "max_hp": 10,
+        "damage": 0,
+        "attack_range": 0,
+        "movement": 2,
+        "aggro_range": 0,
+        "cap": 8,
+    },
     LAND: {
         "max_hp": 12,
         "damage": 4,
@@ -35,6 +45,11 @@ UNIT_STATS = {
 }
 
 RECRUITMENT_STATS = {
+    PIONEER: {
+        "building": "TownCenter",
+        "cost_gold": 60,
+        "total_ticks": 1,
+    },
     LAND: {
         "building": "GuardHouse",
         "cost_gold": 75,
@@ -52,6 +67,7 @@ MAX_RECRUITMENT_QUEUE = 5
 MAX_FRIENDLY_UNITS_PER_TILE = 4
 
 _BUILDING_KIND = {
+    "TownCenter": PIONEER,
     "GuardHouse": LAND,
     "Dock": BOAT,
 }
@@ -106,7 +122,11 @@ class Troop:
             "y": self.y,
             "hp": self.hp,
             "max_hp": self.max_hp,
-            "target": list(self.target) if self.target is not None else None,
+            "target": (
+                list(self.target)
+                if self.owner == viewer_id and self.target is not None
+                else None
+            ),
             "status": self.status,
         }
 
@@ -139,6 +159,7 @@ def reset():
     state.next_troop_id = 1
     state.recruitment_queues = {}
     state.next_recruitment_id = 1
+    state.exploration_orders = {}
     _COMPONENT_CACHE.clear()
     _COMPONENT_CONTEXT = None
 
@@ -147,6 +168,7 @@ def snapshot(viewer_id=None):
     return [
         troop.to_dict(viewer_id)
         for troop in sorted(state.troops.values(), key=_troop_sort_key)
+        if troop.owner == viewer_id or is_explored(viewer_id, troop.x, troop.y)
     ]
 
 
@@ -190,7 +212,7 @@ def _units_at(x, y, *, exclude_id=None):
 
 
 def _can_enter(troop, x, y, *, respect_units=True):
-    if not _terrain_passable(troop.kind, x, y):
+    if not is_explored(troop.owner, x, y) or not _terrain_passable(troop.kind, x, y):
         return False
     if not respect_units:
         return True
@@ -205,17 +227,22 @@ def _manhattan(first, second):
     return abs(first[0] - second[0]) + abs(first[1] - second[1])
 
 
-def _terrain_components(kind):
-    """Rotula ilhas navegaveis/caminhaveis uma vez por revisao do mundo."""
+def _terrain_components(kind, owner):
+    """Rotula caminhos conhecidos por dono, terreno e area explorada."""
     global _COMPONENT_CONTEXT
     width, height = _dimensions()
     context = (id(state.matriz), state.terrain_revision, width, height)
     if context != _COMPONENT_CONTEXT:
         _COMPONENT_CACHE.clear()
         _COMPONENT_CONTEXT = context
-    cached = _COMPONENT_CACHE.get(kind)
-    if cached is not None:
-        return cached
+    player = state.players.get(owner)
+    explored = getattr(player, "explored_tiles", set())
+    # A exploracao cresce monotonicamente; um novo mundo substitui o set.
+    exploration_context = (id(explored), len(explored))
+    cache_key = (kind, owner)
+    cached = _COMPONENT_CACHE.get(cache_key)
+    if cached is not None and cached[0] == exploration_context:
+        return cached[1]
 
     components = [[-1 for _ in range(width)] for _ in range(height)]
     component_id = 0
@@ -223,6 +250,7 @@ def _terrain_components(kind):
         for start_x in range(width):
             if (
                 components[start_y][start_x] != -1
+                or not is_explored(owner, start_x, start_y)
                 or not _terrain_passable(kind, start_x, start_y)
             ):
                 continue
@@ -235,6 +263,7 @@ def _terrain_components(kind):
                     if (
                         not _in_bounds(neighbor_x, neighbor_y)
                         or components[neighbor_y][neighbor_x] != -1
+                        or not is_explored(owner, neighbor_x, neighbor_y)
                         or not _terrain_passable(kind, neighbor_x, neighbor_y)
                     ):
                         continue
@@ -242,14 +271,14 @@ def _terrain_components(kind):
                     frontier.append((neighbor_x, neighbor_y))
             component_id += 1
 
-    _COMPONENT_CACHE[kind] = components
+    _COMPONENT_CACHE[cache_key] = (exploration_context, components)
     return components
 
 
 def _terrain_reachable(troop, goals):
     if not goals or not _in_bounds(troop.x, troop.y):
         return False
-    components = _terrain_components(troop.kind)
+    components = _terrain_components(troop.kind, troop.owner)
     component_id = components[troop.y][troop.x]
     if component_id < 0:
         return False
@@ -257,6 +286,8 @@ def _terrain_reachable(troop, goals):
 
 
 def _enemy_on(owner, x, y):
+    if not is_explored(owner, x, y):
+        return None
     enemies = [
         troop
         for troop in _units_at(x, y)
@@ -273,14 +304,18 @@ def _attack_goals(troop, target):
     for y in range(max(0, ty - attack_range), min(height, ty + attack_range + 1)):
         remaining = attack_range - abs(y - ty)
         for x in range(max(0, tx - remaining), min(width, tx + remaining + 1)):
-            if _terrain_passable(troop.kind, x, y):
+            if is_explored(troop.owner, x, y) and _terrain_passable(troop.kind, x, y):
                 goals.add((x, y))
     return goals
 
 
 def _goals_for(troop, target):
+    if not is_explored(troop.owner, *target):
+        return set(), None
     enemy = _enemy_on(troop.owner, *target)
     if enemy is not None:
+        if UNIT_STATS[troop.kind]["damage"] <= 0:
+            return set(), None
         return _attack_goals(troop, target), enemy
     if _terrain_passable(troop.kind, *target):
         return {target}, None
@@ -378,6 +413,16 @@ def issue_order(player_id, unit_id, x, y):
             "forbidden",
             "Voce so pode dar ordens as suas proprias tropas.",
         )
+
+    if is_busy(unit_id):
+        raise TroopActionError("pioneer_busy", "Este Pioneiro está explorando. Aguarde o ciclo completo terminar.")
+    if not is_explored(player_id, x, y):
+        raise TroopActionError(
+            "unexplored_destination",
+            "Explore esse tile com um pioneiro antes de mover suas tropas.",
+        )
+    if troop.kind == PIONEER and _enemy_on(player_id, x, y) is not None:
+        raise TroopActionError("cannot_attack", "Pioneiros nao podem atacar tropas.")
 
     target = (x, y)
     goals, enemy = _goals_for(troop, target)
@@ -491,6 +536,9 @@ def recruit(player_id, x, y):
             "A construcao de recrutamento esta fora do mapa.",
         )
 
+    if not is_explored(player_id, x, y):
+        raise TroopActionError("unexplored_tile", "Esse tile ainda nao foi explorado.")
+
     _building, kind, owner = _building_at(x, y)
     if owner != player_id:
         raise TroopActionError(
@@ -601,6 +649,8 @@ def command_buildings_snapshot(viewer_id):
                 continue
             owner = getattr(current_tile, "current_player", None)
             is_mine = owner == viewer_id
+            if not is_mine and not is_explored(viewer_id, x, y):
+                continue
             kind = _BUILDING_KIND.get(type(current_tile).__name__)
             can_recruit, unavailable_reason = _recruitment_availability(
                 viewer_id,
@@ -629,14 +679,21 @@ def army_snapshot(viewer_id):
     return {
         "land": _kind_count(viewer_id, LAND),
         "boat": _kind_count(viewer_id, BOAT),
+        "pioneer": _kind_count(viewer_id, PIONEER),
         "land_cap": UNIT_STATS[LAND]["cap"],
         "boat_cap": UNIT_STATS[BOAT]["cap"],
+        "pioneer_cap": UNIT_STATS[PIONEER]["cap"],
     }
 
 
 def _valid_enemy(unit, unit_id):
     target = state.troops.get(unit_id)
-    if target is None or target.hp <= 0 or target.owner == unit.owner:
+    if (
+        target is None
+        or target.hp <= 0
+        or target.owner == unit.owner
+        or not is_explored(unit.owner, target.x, target.y)
+    ):
         return None
     return target
 
@@ -645,6 +702,17 @@ def _refresh_targets():
     living = sorted(state.troops.values(), key=_troop_sort_key)
     for troop in living:
         if troop.hp <= 0:
+            continue
+
+        if is_busy(troop.id):
+            troop.status = "exploring"
+            continue
+
+        if UNIT_STATS[troop.kind]["damage"] <= 0:
+            troop.target_unit_id = None
+            if not troop.ordered:
+                troop.target = None
+                troop.status = "idle"
             continue
 
         tracked = _valid_enemy(troop, troop.target_unit_id)
@@ -662,6 +730,7 @@ def _refresh_targets():
             for enemy in living
             if enemy.hp > 0
             and enemy.owner != troop.owner
+            and is_explored(troop.owner, enemy.x, enemy.y)
             and _manhattan((troop.x, troop.y), (enemy.x, enemy.y))
             <= UNIT_STATS[troop.kind]["aggro_range"]
         ]
@@ -688,7 +757,7 @@ def _refresh_targets():
 
 def _move_troops():
     for troop in sorted(state.troops.values(), key=_troop_sort_key):
-        if troop.hp <= 0 or troop.target is None:
+        if troop.hp <= 0 or troop.target is None or is_busy(troop.id):
             continue
 
         goals, enemy = _goals_for(troop, troop.target)
@@ -741,7 +810,7 @@ def _resolve_combat():
     living = sorted(state.troops.values(), key=_troop_sort_key)
     pending_damage = defaultdict(int)
     for attacker in living:
-        if attacker.hp <= 0:
+        if attacker.hp <= 0 or UNIT_STATS[attacker.kind]["damage"] <= 0:
             continue
         attack_range = UNIT_STATS[attacker.kind]["attack_range"]
         enemies = [
@@ -749,6 +818,7 @@ def _resolve_combat():
             for target in living
             if target.hp > 0
             and target.owner != attacker.owner
+            and is_explored(attacker.owner, target.x, target.y)
             and _manhattan((attacker.x, attacker.y), (target.x, target.y))
             <= attack_range
         ]

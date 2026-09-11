@@ -57,7 +57,7 @@ class GameApi:
             world_revision = state.world_revision
             matrix = None
             if em_partida and known_world_revision != world_revision:
-                matrix = state.matriz_render
+                matrix = state.matriz_wire
 
             lobby = None
             if em_lobby:
@@ -151,6 +151,13 @@ class GameApi:
                     for building in state.command_buildings
                 ],
                 "army": dict(state.army),
+                "exploration_orders": [dict(order) for order in state.exploration_orders],
+                "exploration_rules": {
+                    "radius": state.exploration_rules["radius"],
+                    "total_ticks": state.exploration_rules["total_ticks"],
+                    "explore_cost": dict(state.exploration_rules["explore_cost"]),
+                    "claim_cost": dict(state.exploration_rules["claim_cost"]),
+                },
                 "last_action_error": (
                     dict(state.last_action_error)
                     if state.last_action_error is not None
@@ -221,6 +228,18 @@ class GameApi:
             if self._shut_down:
                 return {"ok": False}
             return session.recrutar_tropa(x, y)
+
+    def explore_tile(self, unit_id, x, y):
+        with self._actions:
+            if self._shut_down:
+                return {"ok": False}
+            return session.acao_pioneiro("explorar_tile", unit_id, x, y)
+
+    def claim_tile(self, unit_id, x, y):
+        with self._actions:
+            if self._shut_down:
+                return {"ok": False}
+            return session.acao_pioneiro("reivindicar_tile", unit_id, x, y)
 
     @staticmethod
     def _window_settings_response(ok=True, error=None):

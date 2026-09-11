@@ -1,4 +1,5 @@
 import core.game_clock as game_clock
+import core.exploration as exploration
 import core.regras_tiles as regras_tiles
 import core.troops as troops
 from core.state import state
@@ -15,7 +16,7 @@ def _erro(acao, codigo, mensagem):
 
 def process_game_action(data: dict, player_id: str):
     action = data.get("tipo")
-    if action not in {"construir", "ordenar_tropa", "recrutar_tropa"}:
+    if action not in {"construir", "ordenar_tropa", "recrutar_tropa", "explorar_tile", "reivindicar_tile"}:
         return _erro(action, "unknown_action", "Ação de partida desconhecida."), None
     if state.phase != "game":
         return _erro(
@@ -24,7 +25,13 @@ def process_game_action(data: dict, player_id: str):
             "Não é possível executar ações antes de a partida começar.",
         ), None
 
-    if action == "ordenar_tropa":
+    if action in {"explorar_tile", "reivindicar_tile"}:
+        try:
+            operation = exploration.explore if action == "explorar_tile" else exploration.claim
+            operation(player_id, data.get("unit_id"), data.get("x"), data.get("y"))
+        except exploration.ExplorationActionError as exc:
+            return _erro(action, exc.code, str(exc)), None
+    elif action == "ordenar_tropa":
         try:
             troops.issue_order(
                 player_id,
@@ -51,7 +58,7 @@ def process_game_action(data: dict, player_id: str):
             return _erro(
                 action,
                 "invalid_build",
-                "Não é possível construir nesse local.",
+                "Construção indisponível: use território próprio explorado e um Pioneiro adjacente; confira terreno, ocupação e recursos.",
             ), None
     return None, "game"
 
@@ -63,7 +70,9 @@ def build_update(player_id, include_matrix=True):
         "fase": state.phase,
         "player_id": player_id,
         "world_revision": state.world_revision,
-        "matriz": state.matriz_dict if include_matrix else None,
+        "matriz": exploration.snapshot_matrix(player_id) if include_matrix else None,
+        "exploration_rules": exploration.rules_snapshot(),
+        "exploration_orders": exploration.orders_snapshot(player_id),
         "recursos": jogador.recursos.to_dict(),
         "posicao_inicial": (
             list(jogador.posicao_inicial)

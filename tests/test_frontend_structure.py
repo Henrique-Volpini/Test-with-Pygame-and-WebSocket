@@ -325,9 +325,13 @@ class FrontendStructureTests(unittest.TestCase):
         self.assertIn('"command_troop"', game_js)
         self.assertRegex(
             game_js,
-            r"const troop = troopAtPoint\(point\);[\s\S]{0,180}"
-            r"troopIsMine\(troop\)[\s\S]{0,180}selectTroop\(troop\)",
+            r"if \(troop && troopIsMine\(troop\)\)\s*\{\s*selectTroop\(troop\)",
         )
+        self.assertRegex(
+            game_js,
+            r"else if \(builtTile \|\| building\)\s*\{\s*clearTroopSelection\(\);",
+        )
+        self.assertIn("troop-selection-close", game.ids)
         self.assertIn("grid-template-columns: repeat(12, minmax(0, 1fr))", game_css)
         self.assertIn("#game-screen.has-selected-troop #world-canvas", game_css)
         self.assertIn(".troop-selection", game_css)
@@ -391,7 +395,7 @@ class FrontendStructureTests(unittest.TestCase):
 
         self.assertRegex(
             game_css,
-            r"#resource-hud\s*\{[\s\S]*?top:\s*0;",
+            r"#resource-hud\s*\{[^}]*top:\s*12px;",
         )
         self.assertIn("@keyframes hud-arrive", game_css)
         self.assertIn(

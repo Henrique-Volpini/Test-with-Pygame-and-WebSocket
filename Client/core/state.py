@@ -11,8 +11,19 @@ def _empty_army():
     return {
         "land": 0,
         "boat": 0,
+        "pioneer": 0,
         "land_cap": 24,
         "boat_cap": 12,
+        "pioneer_cap": 8,
+    }
+
+
+def _default_exploration_rules():
+    return {
+        "explore_cost": {"gold": 20, "wood": 0, "food": 0},
+        "claim_cost": {"gold": 0, "wood": 30, "food": 10},
+        "radius": 1,
+        "total_ticks": 1,
     }
 
 
@@ -34,6 +45,8 @@ class GameState:
         self.troops = []
         self.command_buildings = []
         self.army = _empty_army()
+        self.exploration_rules = _default_exploration_rules()
+        self.exploration_orders = []
         self.last_action_error = None
         self.last_action_error_revision = 0
         self.match_time_ms = 0
@@ -94,6 +107,8 @@ class GameState:
             self.troops = []
             self.command_buildings = []
             self.army = _empty_army()
+            self.exploration_rules = _default_exploration_rules()
+            self.exploration_orders = []
             self.last_action_error = None
             self.last_action_error_revision = 0
             self.match_time_ms = 0
@@ -145,6 +160,8 @@ class GameState:
             self.troops = []
             self.command_buildings = []
             self.army = _empty_army()
+            self.exploration_rules = _default_exploration_rules()
+            self.exploration_orders = []
             self.last_action_error = None
             self.last_action_error_revision = 0
             self.match_time_ms = 0

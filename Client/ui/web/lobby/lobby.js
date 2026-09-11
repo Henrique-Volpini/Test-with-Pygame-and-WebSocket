@@ -383,8 +383,8 @@ export function createLobby({callBridge, requestView}) {
             ? "Gerando outro território"
             : "Preparando o terreno";
         mapEmptyDescription.textContent = generating
-            ? "A nova prévia será exibida para todos assim que estiver pronta."
-            : "O mapa aparecerá assim que o reino estiver pronto.";
+            ? "Atualizando a prévia para todos os jogadores."
+            : "O mapa aparecerá assim que estiver pronto.";
         mapEmpty.hidden = false;
         mapFrame.setAttribute("aria-busy", "true");
     }

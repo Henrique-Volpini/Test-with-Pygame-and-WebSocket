@@ -46,10 +46,23 @@
         </div>
     </header>
 
+    <button id="map-help-toggle" class="map-help-toggle" type="button" aria-controls="territory-legend" aria-expanded="false">? Ajuda</button>
+    <aside id="territory-legend" class="territory-legend" aria-label="Ajuda do mapa" hidden>
+        <div class="map-help-heading"><strong>Exploração e território</strong><button id="map-help-close" class="panel-close" type="button" aria-label="Fechar ajuda">×</button></div>
+        <span><i class="legend-fog"></i>Desconhecido</span>
+        <span><i class="legend-neutral"></i>Explorado, sem dono</span>
+        <span><i class="legend-mine"></i>Seu território</span>
+        <span><i class="legend-enemy"></i>Outro jogador</span>
+        <small>A névoa mostra apenas uma prévia do terreno vizinho.</small>
+        <small>Recrute um pioneiro no centro urbano. Explore um tile em 10 s completos; reivindique para construir.</small>
+        <small>WASD: câmera · roda: zoom · botão direito: mover.</small>
+    </aside>
+    <p id="action-feedback" class="action-feedback" role="status" aria-live="polite" hidden></p>
+
     <aside id="troop-selection" class="troop-selection" aria-labelledby="troop-selection-title" aria-live="polite" hidden>
         <div class="troop-selection-heading">
-            <span class="troop-selection-kicker">UNIDADE SELECIONADA</span>
             <strong id="troop-selection-title">Tropa terrestre</strong>
+            <button id="troop-selection-close" class="panel-close" type="button" aria-label="Fechar menu da unidade" title="Fechar (Esc)">×</button>
         </div>
         <div class="troop-health-row">
             <span>VIDA</span>
@@ -59,7 +72,15 @@
             <span></span>
         </div>
         <p id="troop-status">Em posição</p>
-        <small>Clique direito no mapa para mover ou atacar.</small>
+        <small class="troop-movement-hint">Botão direito para mover · Esc para fechar</small>
+        <section id="pioneer-actions" class="pioneer-actions" aria-label="Exploração e expansão" hidden>
+            <strong id="pioneer-target">Nenhum tile selecionado</strong>
+            <small>Escolha um tile na área 3×3.</small>
+            <button id="pioneer-explore-button" type="button" aria-describedby="pioneer-explore-reason"><span>Explorar</span><small id="pioneer-explore-cost">20 ouro · 10 s</small></button>
+            <p id="pioneer-explore-reason"></p>
+            <button id="pioneer-claim-button" type="button" aria-describedby="pioneer-claim-reason"><span>Reivindicar</span><small id="pioneer-claim-cost">30 madeira + 10 comida</small></button>
+            <p id="pioneer-claim-reason"></p>
+        </section>
     </aside>
 
     <div id="build-menu">
@@ -106,9 +127,9 @@
         <section id="build-panel" class="build-panel" aria-labelledby="build-title" aria-hidden="true" inert>
             <header class="build-header">
                 <div>
-                    <h2 id="build-title">Escolha uma estrutura</h2>
+                    <h2 id="build-title">Construir</h2>
                 </div>
-                <p>Passe o mouse para ver detalhes · clique para construir</p>
+                <p id="build-availability" aria-live="polite">Selecione seu território e posicione um pioneiro adjacente.</p>
             </header>
 
             <div class="build-options">
@@ -182,6 +203,7 @@
                     <div id="command-army-summary" class="command-army-summary" aria-label="Seu exército">
                         <span><small>TERRA</small><strong id="army-land-value">0 / 24</strong></span>
                         <span><small>MAR</small><strong id="army-boat-value">0 / 12</strong></span>
+                        <span><small>PIONEIROS</small><strong id="army-pioneer-value">0 / 8</strong></span>
                     </div>
                 </header>
 
@@ -193,7 +215,7 @@
                         </div>
                         <span id="command-queue-count">0 / 5</span>
                     </div>
-                    <p id="command-center-summary" class="command-center-summary" hidden>O centro urbano identifica seu domínio e resume todas as tropas sob seu comando.</p>
+                    <p id="command-center-summary" class="command-center-summary" hidden>O centro urbano recruta pioneiros para explorar, reivindicar território e construir.</p>
                     <ol id="command-queue" class="command-queue" aria-label="Fila de recrutamento"></ol>
                 </section>
 

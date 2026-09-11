@@ -45,6 +45,9 @@ class State:
         # Mundo
         self.matriz = None
         self.matriz_dict = None
+        # Posse do solo independe do dono da construcao sobre ele.
+        self.territory_owners = {}
+        self.exploration_orders = {}
 
         # Lobby e autoridade. O token existe apenas no processo do anfitriao e
         # nunca faz parte dos snapshots enviados aos convidados.

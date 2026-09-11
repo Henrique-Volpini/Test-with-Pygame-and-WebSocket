@@ -12,6 +12,7 @@ class Player:
         self.recursos = recursos.Recursos()
         self._construcoes = []
         self.posicao_inicial = None
+        self.explored_tiles = set()
 
     @property
     def construcoes(self):
