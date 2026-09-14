@@ -5,6 +5,7 @@ import {
     LOGICAL_WIDTH,
     VIEWPORT_RESIZE_EVENT,
 } from "../shared/runtime.js";
+import {readThemeColors, withAlpha} from "../shared/theme.js";
 
 const TILE_SIZE = 32;
 const CAMERA_SPEED = 600;
@@ -53,6 +54,7 @@ const TROOP_STACK_OFFSETS = [
 const RESOURCE_NAMES = ["gold", "wood", "food"];
 
 export function createGame({callBridge, viewport}) {
+    const themeColor = readThemeColors();
     const gameScreen = byId("game-screen");
     const buildMenu = byId("build-menu");
     const buildPanel = byId("build-panel");
@@ -1903,18 +1905,18 @@ export function createGame({callBridge, viewport}) {
     function troopPalette(troop) {
         if (troopIsMine(troop)) {
             return {
-                bright: "#ffe29a",
-                main: "#d9ad55",
-                dark: "#704720",
-                accent: "#9fc8b0",
+                bright: themeColor("unit-bright"),
+                main: themeColor("unit-main"),
+                dark: themeColor("unit-dark"),
+                accent: themeColor("unit-accent"),
             };
         }
         const hue = hashText(troop.owner || troop.key) % 360;
         return {
-            bright: `hsl(${hue} 78% 76%)`,
-            main: `hsl(${hue} 62% 55%)`,
-            dark: `hsl(${hue} 48% 25%)`,
-            accent: "#e47b68",
+            bright: `hsl(${hue} ${themeColor("enemy-team-bright-tone")})`,
+            main: `hsl(${hue} ${themeColor("enemy-team-main-tone")})`,
+            dark: `hsl(${hue} ${themeColor("enemy-team-dark-tone")})`,
+            accent: themeColor("enemy-accent"),
         };
     }
 
@@ -1954,7 +1956,7 @@ export function createGame({callBridge, viewport}) {
             const offsetY = formationY + ((random >>> 3) % 3) - 1;
             const bodyColor = index % 3 === 0 ? palette.accent : palette.main;
 
-            drawPixelRect(center, offsetX - 1, offsetY + 4, 3, 1, "rgba(8, 7, 5, 0.55)");
+            drawPixelRect(center, offsetX - 1, offsetY + 4, 3, 1, themeColor("land-shadow"));
             drawPixelRect(center, offsetX - 1, offsetY - 3, 2, 2, palette.bright);
             drawPixelRect(center, offsetX - 1, offsetY - 1, 3, 4, bodyColor);
             drawPixelRect(center, offsetX - 1, offsetY + 3, 1, 2, palette.dark);
@@ -1972,7 +1974,7 @@ export function createGame({callBridge, viewport}) {
             direction > 0 ? offset : -offset - width
         );
 
-        drawPixelRect(center, -10, 6, 20, 3, "rgba(6, 9, 10, 0.58)");
+        drawPixelRect(center, -10, 6, 20, 3, themeColor("boat-shadow"));
         drawPixelRect(center, -10, 3, 20, 4, palette.dark);
         drawPixelRect(center, -8, 0, 16, 4, palette.main);
         drawPixelRect(center, orientedX(8, 3), 1, 3, 3, palette.bright);
@@ -1998,17 +2000,17 @@ export function createGame({callBridge, viewport}) {
             context.fillRect(center.x + x * state.zoom, center.y + y * state.zoom,
                 width * state.zoom, height * state.zoom);
         };
-        pixel(-7, 7, 15, 3, "rgba(10, 16, 20, 0.5)");
-        pixel(-7, -2, 5, 8, "#704720");
-        pixel(-4, -1, 9, 8, "#15282e");
-        pixel(-3, 0, 7, 6, "#69c9b1");
-        pixel(-3, -6, 6, 5, "#edc691");
+        pixel(-7, 7, 15, 3, themeColor("pioneer-shadow"));
+        pixel(-7, -2, 5, 8, themeColor("unit-dark"));
+        pixel(-4, -1, 9, 8, themeColor("pioneer-outline"));
+        pixel(-3, 0, 7, 6, themeColor("pioneer-coat"));
+        pixel(-3, -6, 6, 5, themeColor("pioneer-skin"));
         pixel(-5, -7, 10, 2, palette.bright);
         pixel(-3, -9, 6, 3, palette.main);
-        pixel(-3, 7, 3, 3, "#302219");
-        pixel(2, 7, 3, 3, "#302219");
-        pixel(6, -5, 2, 12, "#a67a40");
-        pixel(3, -7, 9, 3, "#fff0b5");
+        pixel(-3, 7, 3, 3, themeColor("pioneer-boots"));
+        pixel(2, 7, 3, 3, themeColor("pioneer-boots"));
+        pixel(6, -5, 2, 12, themeColor("pioneer-staff"));
+        pixel(3, -7, 9, 3, themeColor("pioneer-hat"));
     }
 
     function troopPathScreenPoint(position, offset) {
@@ -2067,10 +2069,10 @@ export function createGame({callBridge, viewport}) {
         const radius = motion.reduced ? 15 : 14 + pulse * 4;
         const markerAlpha = motion.reduced ? 0.95 : 0.72 - pulse * 0.26;
         const markerColor = motion.catchUp
-            ? `rgba(246, 158, 91, ${markerAlpha})`
+            ? withAlpha(themeColor("effect-hostile"), markerAlpha)
             : troop.kind === "boat"
-            ? `rgba(191, 237, 236, ${markerAlpha})`
-            : `rgba(242, 208, 130, ${markerAlpha})`;
+            ? withAlpha(themeColor("effect-boat-order"), markerAlpha)
+            : withAlpha(themeColor("effect-land-order"), markerAlpha);
         drawPixelRect(center, -radius, -radius, 6, 2, markerColor);
         drawPixelRect(center, radius - 6, -radius, 6, 2, markerColor);
         drawPixelRect(center, -radius, radius - 2, 6, 2, markerColor);
@@ -2103,7 +2105,7 @@ export function createGame({callBridge, viewport}) {
                 backY - visual.dy * distance + perpendicularY * spread + 7,
                 index % 2 ? 2 : 3,
                 2,
-                `rgba(194, 155, 96, ${0.42 - index * 0.07})`,
+                withAlpha(themeColor("effect-dust"), 0.42 - index * 0.07),
             );
         }
     }
@@ -2127,7 +2129,7 @@ export function createGame({callBridge, viewport}) {
                     backY * distance + perpendicularY * spread * side + 5,
                     index < 2 ? 3 : 2,
                     1,
-                    `rgba(177, 225, 224, ${0.62 - index * 0.11})`,
+                    withAlpha(themeColor("effect-wake"), 0.62 - index * 0.11),
                 );
             }
         }
@@ -2139,19 +2141,19 @@ export function createGame({callBridge, viewport}) {
         }
         const width = 22;
         const ratio = Math.max(0, Math.min(1, troop.hp / troop.maxHp));
-        drawPixelRect(center, -width / 2 - 1, -15, width + 2, 4, "rgba(10, 7, 5, 0.88)");
+        drawPixelRect(center, -width / 2 - 1, -15, width + 2, 4, themeColor("unit-health-track"));
         drawPixelRect(
             center,
             -width / 2,
             -14,
             Math.max(1, width * ratio),
             2,
-            ratio > 0.35 ? "#91c568" : "#df6857",
+            ratio > 0.35 ? themeColor("unit-health") : themeColor("unit-health-low"),
         );
     }
 
     function drawTroopSelection(center) {
-        const color = "#ffe598";
+        const color = themeColor("unit-selection");
         const corner = 5;
         const radius = 14;
         drawPixelRect(center, -radius, -radius, corner, 2, color);
@@ -2181,7 +2183,9 @@ export function createGame({callBridge, viewport}) {
             Math.trunc(candidate.x) === Math.trunc(target[0]) &&
             Math.trunc(candidate.y) === Math.trunc(target[1])
         ));
-        const color = hostileAtTarget ? "#ef7865" : "#f5d77f";
+        const color = hostileAtTarget
+            ? themeColor("order-hostile")
+            : themeColor("order-friendly");
 
         context.save();
         context.strokeStyle = color;
@@ -2257,10 +2261,12 @@ export function createGame({callBridge, viewport}) {
             };
 
             context.save();
-            context.globalAlpha = 1 - progress;
             if (effect.kind === "spawn") {
                 const radius = 7 + progress * 13;
-                context.strokeStyle = "#c6e78d";
+                context.strokeStyle = withAlpha(
+                    themeColor("effect-spawn"),
+                    1 - progress,
+                );
                 context.lineWidth = Math.max(1, state.zoom);
                 context.strokeRect(
                     Math.round(center.x - radius * state.zoom),
@@ -2269,7 +2275,9 @@ export function createGame({callBridge, viewport}) {
                     Math.round(radius * 2 * state.zoom),
                 );
             } else {
-                const color = effect.kind === "damage" ? "#ff765f" : "#6e2924";
+                const color = effect.kind === "damage"
+                    ? withAlpha(themeColor("effect-damage"), 1 - progress)
+                    : withAlpha(themeColor("effect-death"), 1 - progress);
                 const distance = (4 + progress * 13) * state.zoom;
                 for (let index = 0; index < 7; index += 1) {
                     const random = seededValue(effect.seed, index);
@@ -2330,7 +2338,7 @@ export function createGame({callBridge, viewport}) {
                 const screenX = Math.trunc((x * TILE_SIZE - state.cameraX) * state.zoom);
                 const screenY = Math.trunc((y * TILE_SIZE - state.cameraY) * state.zoom);
                 if (!name) {
-                    context.fillStyle = "#141c28";
+                    context.fillStyle = themeColor("map-fog");
                     context.fillRect(screenX, screenY, scaledSize, scaledSize);
                     continue;
                 }
@@ -2339,7 +2347,7 @@ export function createGame({callBridge, viewport}) {
                     context.drawImage(image, screenX, screenY, scaledSize, scaledSize);
                 }
                 if (row[x]?.preview === true) {
-                    context.fillStyle = "rgba(20, 28, 40, 0.72)";
+                    context.fillStyle = themeColor("map-preview");
                     context.fillRect(screenX, screenY, scaledSize, scaledSize);
                 } else {
                     drawTerritory(row[x], x, y, screenX, screenY, scaledSize);
@@ -2350,7 +2358,7 @@ export function createGame({callBridge, viewport}) {
         const pioneer = selectedTroop();
         if (pioneer?.kind === "pioneer") {
             context.save();
-            context.strokeStyle = "rgba(143, 237, 214, 0.8)";
+            context.strokeStyle = themeColor("pioneer-range");
             context.lineWidth = 2;
             context.setLineDash([5, 4]);
             context.strokeRect(((pioneer.x - 1) * TILE_SIZE - state.cameraX) * state.zoom,
@@ -2383,9 +2391,11 @@ export function createGame({callBridge, viewport}) {
             const elapsedMs = Math.max(0, performance.now() - state.tickSyncedAtMs);
             const remainingMs = Math.max(0, state.tickRemainingAtSyncMs - elapsedMs);
             const progress = order.waiting_for_start ? 0 : 1 - remainingMs / state.tickIntervalMs;
-            context.fillStyle = "#15232d";
+            context.fillStyle = themeColor("exploration-track");
             context.fillRect(x - 13, y, 26, 4);
-            context.fillStyle = order.waiting_for_start ? "#e6c77d" : "#92c6ee";
+            context.fillStyle = order.waiting_for_start
+                ? themeColor("exploration-waiting")
+                : themeColor("exploration-active");
             context.fillRect(x - 12, y + 1, Math.max(2, 24 * progress), 2);
         }
     }
@@ -2394,9 +2404,13 @@ export function createGame({callBridge, viewport}) {
         const owner = territoryOwner(cell);
         if (owner !== null) {
             const mine = owner === state.playerId;
-            context.fillStyle = mine ? "rgba(99, 171, 218, 0.15)" : "rgba(231, 119, 112, 0.18)";
+            context.fillStyle = mine
+                ? themeColor("territory-mine-fill")
+                : themeColor("territory-enemy-fill");
             context.fillRect(screenX, screenY, size, size);
-            context.strokeStyle = mine ? "#7dbce4" : "#ef8c86";
+            context.strokeStyle = mine
+                ? themeColor("territory-mine")
+                : themeColor("territory-enemy");
             context.lineWidth = Math.max(1, state.zoom);
             context.beginPath();
             for (const [dx, dy, x1, y1, x2, y2] of [

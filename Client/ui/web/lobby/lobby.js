@@ -1,4 +1,5 @@
 import {bindPrimaryAction, byId} from "../shared/runtime.js";
+import {readThemeColors} from "../shared/theme.js";
 
 const MIN_WORLD_SIZE = 1;
 const MAX_WORLD_SIZE = 200;
@@ -14,20 +15,6 @@ const MAP_PARAM_LABELS = Object.freeze({
     forests: ["Nenhuma", "Esparsas", "Equilibradas", "Densas", "Selvagens"],
 });
 
-const TILE_PALETTES = {
-    grass: ["#69844c", "#708a50", "#607943"],
-    water: ["#39778b", "#347084", "#417e90"],
-    mountain: ["#77786e", "#838379", "#696b64"],
-    small_forest: ["#3d6737", "#355d32", "#456f3b"],
-    medium_forest: ["#31592f", "#2d512b", "#386234"],
-    big_forest: ["#274a28", "#234324", "#2d512b"],
-    town_center: ["#a67545", "#8e5f38", "#bb8850"],
-    city: ["#98684f", "#875945", "#aa7659"],
-    mine: ["#9b7a42", "#866636", "#af8c4c"],
-    lumberjack_cabin: ["#9c603b", "#895132", "#ae7047"],
-    madeireiro: ["#9c603b", "#895132", "#ae7047"],
-};
-
 const STATUS_LABELS = {
     ready: "SALA ABERTA",
     open: "SALA ABERTA",
@@ -40,6 +27,64 @@ const STATUS_LABELS = {
 };
 
 export function createLobby({callBridge, requestView}) {
+    const themeColor = readThemeColors();
+    const tilePalettes = {
+        grass: [
+            themeColor("map-grass-1"),
+            themeColor("map-grass-2"),
+            themeColor("map-grass-3"),
+        ],
+        water: [
+            themeColor("map-water-1"),
+            themeColor("map-water-2"),
+            themeColor("map-water-3"),
+        ],
+        mountain: [
+            themeColor("map-mountain-1"),
+            themeColor("map-mountain-2"),
+            themeColor("map-mountain-3"),
+        ],
+        small_forest: [
+            themeColor("map-small-forest-1"),
+            themeColor("map-small-forest-2"),
+            themeColor("map-small-forest-3"),
+        ],
+        medium_forest: [
+            themeColor("map-medium-forest-1"),
+            themeColor("map-medium-forest-2"),
+            themeColor("map-medium-forest-3"),
+        ],
+        big_forest: [
+            themeColor("map-big-forest-1"),
+            themeColor("map-big-forest-2"),
+            themeColor("map-big-forest-3"),
+        ],
+        town_center: [
+            themeColor("map-town-center-1"),
+            themeColor("map-town-center-2"),
+            themeColor("map-town-center-3"),
+        ],
+        city: [
+            themeColor("map-city-1"),
+            themeColor("map-city-2"),
+            themeColor("map-city-3"),
+        ],
+        mine: [
+            themeColor("map-mine-1"),
+            themeColor("map-mine-2"),
+            themeColor("map-mine-3"),
+        ],
+        lumberjack_cabin: [
+            themeColor("map-lumberjack-cabin-1"),
+            themeColor("map-lumberjack-cabin-2"),
+            themeColor("map-lumberjack-cabin-3"),
+        ],
+        madeireiro: [
+            themeColor("map-madeireiro-1"),
+            themeColor("map-madeireiro-2"),
+            themeColor("map-madeireiro-3"),
+        ],
+    };
     const screen = byId("lobby-screen");
     const shell = byId("lobby-shell");
     const code = byId("lobby-code");
@@ -257,7 +302,7 @@ export function createLobby({callBridge, requestView}) {
     }
 
     function tileColor(name, x, y) {
-        const palette = TILE_PALETTES[name] || TILE_PALETTES.grass;
+        const palette = tilePalettes[name] || tilePalettes.grass;
         const variation = Math.abs((x * 17 + y * 31 + x * y * 3) % palette.length);
         return palette[variation];
     }
@@ -300,7 +345,7 @@ export function createLobby({callBridge, requestView}) {
         const offsetX = (drawWidth - worldWidth) / 2;
         const offsetY = (drawHeight - worldHeight) / 2;
 
-        context.fillStyle = "#0d110c";
+        context.fillStyle = themeColor("map-background");
         context.fillRect(0, 0, drawWidth, drawHeight);
 
         for (let y = 0; y < height; y += 1) {
@@ -319,7 +364,7 @@ export function createLobby({callBridge, requestView}) {
         }
 
         if (cellSize >= 8) {
-            context.strokeStyle = "rgba(235, 220, 179, 0.08)";
+            context.strokeStyle = themeColor("map-grid");
             context.lineWidth = 1;
             context.beginPath();
             for (let x = 0; x <= width; x += 1) {
@@ -335,7 +380,7 @@ export function createLobby({callBridge, requestView}) {
             context.stroke();
         }
 
-        context.strokeStyle = "rgba(238, 204, 126, 0.36)";
+        context.strokeStyle = themeColor("map-outline");
         context.lineWidth = 2;
         context.strokeRect(
             Math.floor(offsetX) + 1,

@@ -1,17 +1,6 @@
 :root {
-    color-scheme: dark;
     --logical-width: 1280px;
     --logical-height: 960px;
-    --ink: #160f0b;
-    --panel: #2b2018;
-    --panel-deep: #19120e;
-    --parchment: #f1dfb5;
-    --parchment-muted: #bfae8a;
-    --gold: #c79643;
-    --gold-bright: #f0ca73;
-    --gold-dark: #765024;
-    --green: #758f3e;
-    --red: #9b4c3e;
 }
 
 * {
@@ -28,7 +17,7 @@ body {
     height: 100%;
     margin: 0;
     overflow: hidden;
-    background: #000;
+    background: var(--screen-void);
 }
 
 body {
@@ -42,7 +31,7 @@ body {
     width: var(--logical-width);
     height: var(--logical-height);
     overflow: hidden;
-    background: #000;
+    background: var(--screen-void);
     transform-origin: top left;
     user-select: none;
     touch-action: none;

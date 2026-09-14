@@ -4,8 +4,8 @@
     inset: 0;
     pointer-events: none;
     background:
-        linear-gradient(90deg, rgba(9, 16, 9, 0.08) 0%, transparent 48%, rgba(16, 12, 9, 0.16) 66%, rgba(13, 10, 8, 0.52) 100%),
-        linear-gradient(180deg, transparent 0 62%, rgba(17, 12, 8, 0.18) 100%);
+        linear-gradient(90deg, color-mix(in srgb, var(--ink) 8%, transparent) 0%, transparent 48%, color-mix(in srgb, var(--ink) 16%, transparent) 66%, color-mix(in srgb, var(--ink) 52%, transparent) 100%),
+        linear-gradient(180deg, transparent 0 62%, color-mix(in srgb, var(--ink) 18%, transparent) 100%);
 }
 
 .menu-view {
@@ -25,17 +25,21 @@
     color: var(--parchment);
     border: 2px solid var(--gold-dark);
     background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 13px),
-        linear-gradient(225deg, rgba(0, 0, 0, 0.07) 0 1px, transparent 1px 17px),
-        linear-gradient(180deg, rgba(55, 40, 29, 0.97), rgba(26, 19, 14, 0.985));
+        linear-gradient(135deg, color-mix(in srgb, var(--parchment) 3.5%, transparent) 0 1px, transparent 1px 13px),
+        linear-gradient(225deg, color-mix(in srgb, var(--screen-void) 7%, transparent) 0 1px, transparent 1px 17px),
+        linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--panel-raised) 97%, transparent),
+            color-mix(in srgb, var(--panel-deep) 98.5%, transparent)
+        );
     background-size: 13px 13px, 17px 17px, auto;
     box-shadow:
         0 0 0 2px var(--ink),
-        0 0 0 5px rgba(203, 151, 68, 0.68),
-        0 0 0 9px rgba(22, 15, 11, 0.86),
-        0 22px 42px rgba(12, 10, 7, 0.58),
-        inset 0 1px rgba(255, 231, 174, 0.12),
-        inset 0 -10px 24px rgba(0, 0, 0, 0.22);
+        0 0 0 5px color-mix(in srgb, var(--gold) 68%, transparent),
+        0 0 0 9px color-mix(in srgb, var(--ink) 86%, transparent),
+        0 22px 42px color-mix(in srgb, var(--ink) 58%, transparent),
+        inset 0 1px color-mix(in srgb, var(--parchment) 12%, transparent),
+        inset 0 -10px 24px color-mix(in srgb, var(--screen-void) 22%, transparent);
     animation: menu-arrive 260ms ease-out both;
 }
 
@@ -43,7 +47,7 @@
     content: "";
     position: absolute;
     inset: 8px;
-    border: 1px solid rgba(214, 169, 91, 0.3);
+    border: 1px solid color-mix(in srgb, var(--gold) 30%, transparent);
     pointer-events: none;
 }
 
@@ -56,7 +60,7 @@
     height: 28px;
     color: var(--gold-bright);
     border: 2px solid var(--ink);
-    background: #47301c;
+    background: var(--panel-hover);
     box-shadow: 0 0 0 2px var(--gold-dark);
     font-family: Georgia, serif;
     font-size: 13px;
@@ -91,18 +95,18 @@
     letter-spacing: 3px;
     line-height: 18px;
     text-align: center;
-    text-shadow: 0 2px #120c08;
+    text-shadow: 0 2px var(--ink);
 }
 
 .menu-title {
     margin: 0;
-    color: #fff1cf;
+    color: var(--parchment);
     font-family: Georgia, "Times New Roman", serif;
     font-size: 34px;
     font-weight: 700;
     line-height: 42px;
     text-align: center;
-    text-shadow: 0 3px 0 #120c08, 0 0 16px rgba(236, 190, 107, 0.14);
+    text-shadow: 0 3px 0 var(--ink), 0 0 16px color-mix(in srgb, var(--gold-bright) 14%, transparent);
 }
 
 .menu-description {
@@ -139,7 +143,7 @@
     width: 8px;
     height: 8px;
     border: 1px solid var(--gold);
-    background: #211711;
+    background: color-mix(in srgb, var(--panel-deep) 55%, var(--panel));
     transform: rotate(45deg);
 }
 
@@ -160,13 +164,13 @@
     padding: 0 18px 0 12px;
     overflow: hidden;
     color: var(--parchment);
-    border: 1px solid #79542a;
+    border: 1px solid var(--border);
     background:
-        linear-gradient(90deg, rgba(255, 255, 255, 0.05), transparent 32%),
-        linear-gradient(180deg, #463421, #2a1e15);
+        linear-gradient(90deg, color-mix(in srgb, var(--parchment) 5%, transparent), transparent 32%),
+        linear-gradient(180deg, var(--panel-raised), var(--panel));
     box-shadow:
-        0 3px 0 #120c08,
-        inset 0 1px rgba(255, 235, 190, 0.14),
+        0 3px 0 var(--ink),
+        inset 0 1px color-mix(in srgb, var(--parchment) 14%, transparent),
         inset 4px 0 var(--button-accent);
     font: inherit;
     text-align: left;
@@ -179,29 +183,29 @@
     position: absolute;
     inset: 0;
     opacity: 0;
-    background: linear-gradient(105deg, transparent 15%, rgba(255, 225, 155, 0.11) 48%, transparent 80%);
+    background: linear-gradient(105deg, transparent 15%, color-mix(in srgb, var(--gold-bright) 11%, transparent) 48%, transparent 80%);
     transform: translateX(-35%);
     transition: opacity 120ms ease, transform 220ms ease;
 }
 
 .host-button {
-    --button-accent: #819b45;
-    --button-accent-bright: #bdd471;
+    --button-accent: color-mix(in srgb, var(--green) 65%, var(--panel-deep));
+    --button-accent-bright: var(--green);
 }
 
 .connect-button {
-    --button-accent: #b88035;
-    --button-accent-bright: #efbf65;
+    --button-accent: var(--gold);
+    --button-accent-bright: var(--gold-bright);
 }
 
 .menu-settings-button {
-    --button-accent: #567b87;
-    --button-accent-bright: #8bc3ce;
+    --button-accent: var(--gold-dark);
+    --button-accent-bright: var(--gold);
 }
 
 .exit-button {
-    --button-accent: #8f493d;
-    --button-accent-bright: #d77a68;
+    --button-accent: color-mix(in srgb, var(--red) 65%, var(--panel-deep));
+    --button-accent-bright: var(--red);
 }
 
 .join-game-button {
@@ -209,14 +213,14 @@
 }
 
 .menu-button:hover {
-    color: #fff5dc;
+    color: var(--parchment);
     border-color: var(--button-accent-bright);
     filter: brightness(1.12);
     transform: translateY(-2px);
     box-shadow:
-        0 5px 0 #120c08,
-        0 9px 18px rgba(0, 0, 0, 0.2),
-        inset 0 1px rgba(255, 235, 190, 0.2),
+        0 5px 0 var(--ink),
+        0 9px 18px color-mix(in srgb, var(--screen-void) 20%, transparent),
+        inset 0 1px color-mix(in srgb, var(--parchment) 20%, transparent),
         inset 4px 0 var(--button-accent-bright);
 }
 
@@ -229,15 +233,15 @@
     filter: brightness(0.96);
     transform: translateY(2px);
     box-shadow:
-        0 1px 0 #120c08,
-        inset 0 2px 5px rgba(0, 0, 0, 0.3),
+        0 1px 0 var(--ink),
+        inset 0 2px 5px color-mix(in srgb, var(--screen-void) 30%, transparent),
         inset 4px 0 var(--button-accent);
 }
 
 .menu-button:focus-visible,
 .fullscreen-button:focus-visible,
 .menu-text-button:focus-visible {
-    outline: 2px solid #fff1bd;
+    outline: 2px solid var(--parchment);
     outline-offset: 4px;
 }
 
@@ -249,9 +253,9 @@
     width: 42px;
     height: 42px;
     color: var(--button-accent-bright);
-    border: 1px solid color-mix(in srgb, var(--button-accent) 70%, #1d130d);
-    background: rgba(12, 9, 7, 0.44);
-    box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.025);
+    border: 1px solid color-mix(in srgb, var(--button-accent) 70%, var(--panel-deep));
+    background: color-mix(in srgb, var(--ink) 44%, transparent);
+    box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--parchment) 2.5%, transparent);
     font-family: Georgia, serif;
     font-size: 25px;
     font-weight: 700;
@@ -278,7 +282,7 @@
 }
 
 .button-copy small {
-    color: #b7a47e;
+    color: var(--parchment-muted);
     font-size: 12px;
     line-height: 16px;
 }
@@ -300,7 +304,7 @@
 
 .menu-signature {
     margin: 20px 0 0;
-    color: #887454;
+    color: color-mix(in srgb, var(--text-disabled) 55%, var(--border));
     font-family: "Courier New", monospace;
     font-size: 9px;
     font-weight: 700;
@@ -317,7 +321,7 @@
 .field-label {
     display: block;
     margin: 3px 0 8px;
-    color: #e0c78f;
+    color: color-mix(in srgb, var(--parchment) 65%, var(--gold));
     font-family: "Courier New", monospace;
     font-size: 12px;
     font-weight: 700;
@@ -331,14 +335,14 @@
     width: 100%;
     height: 76px;
     overflow: hidden;
-    border: 2px solid #765126;
+    border: 2px solid var(--gold-dark);
     background:
-        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 7px),
-        linear-gradient(180deg, #130f0c, #1d1611);
+        repeating-linear-gradient(90deg, color-mix(in srgb, var(--parchment) 1.8%, transparent) 0 1px, transparent 1px 7px),
+        linear-gradient(180deg, var(--ink), color-mix(in srgb, var(--panel-deep) 75%, var(--panel)));
     box-shadow:
-        inset 0 4px 9px rgba(0, 0, 0, 0.5),
-        inset 0 0 0 4px rgba(255, 223, 157, 0.025),
-        0 2px 0 #0e0907;
+        inset 0 4px 9px color-mix(in srgb, var(--screen-void) 50%, transparent),
+        inset 0 0 0 4px color-mix(in srgb, var(--gold-bright) 2.5%, transparent),
+        0 2px 0 color-mix(in srgb, var(--ink) 64%, var(--screen-void));
     transition: border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
 }
 
@@ -350,7 +354,7 @@
     top: 8px;
     bottom: 8px;
     width: 1px;
-    background: #5e4022;
+    background: color-mix(in srgb, var(--gold-dark) 75%, var(--ink));
     pointer-events: none;
 }
 
@@ -365,10 +369,10 @@
 .menu-field:focus-within {
     border-color: var(--gold-bright);
     box-shadow:
-        inset 0 4px 9px rgba(0, 0, 0, 0.5),
-        inset 0 0 0 4px rgba(255, 223, 157, 0.04),
-        0 0 0 3px rgba(218, 166, 76, 0.16),
-        0 2px 0 #0e0907;
+        inset 0 4px 9px color-mix(in srgb, var(--screen-void) 50%, transparent),
+        inset 0 0 0 4px color-mix(in srgb, var(--gold-bright) 4%, transparent),
+        0 0 0 3px color-mix(in srgb, var(--gold) 16%, transparent),
+        0 2px 0 color-mix(in srgb, var(--ink) 64%, var(--screen-void));
 }
 
 .field-decoration {
@@ -377,7 +381,7 @@
     top: 50%;
     left: 0;
     width: 58px;
-    color: #ae7c39;
+    color: color-mix(in srgb, var(--gold) 70%, var(--gold-dark));
     font-family: Georgia, serif;
     font-size: 24px;
     font-weight: 700;
@@ -410,7 +414,7 @@
     right: 18px;
     left: 72px;
     overflow: hidden;
-    color: #9f8b68;
+    color: color-mix(in srgb, var(--parchment-muted) 55%, var(--border));
     font-family: "Courier New", monospace;
     font-size: 19px;
     font-weight: 700;
@@ -423,19 +427,19 @@
 }
 
 .menu-field:focus-within .field-display {
-    color: #fff0c8;
-    text-shadow: 0 0 10px rgba(237, 190, 96, 0.22);
+    color: var(--parchment);
+    text-shadow: 0 0 10px color-mix(in srgb, var(--gold-bright) 22%, transparent);
 }
 
 .field-hint {
     margin: 10px 2px 0;
-    color: #9d8b6d;
+    color: color-mix(in srgb, var(--parchment-muted) 55%, var(--border));
     font-size: 12px;
     line-height: 18px;
 }
 
 .field-hint strong {
-    color: #d1b77e;
+    color: color-mix(in srgb, var(--parchment-muted) 70%, var(--gold-bright));
     font-weight: 700;
 }
 
@@ -446,9 +450,9 @@
     height: 82px;
     margin: 18px auto 15px;
     place-items: center;
-    border: 1px solid rgba(199, 150, 67, 0.42);
-    background: rgba(12, 9, 7, 0.38);
-    box-shadow: inset 0 0 0 5px rgba(255, 255, 255, 0.02);
+    border: 1px solid color-mix(in srgb, var(--gold) 42%, transparent);
+    background: color-mix(in srgb, var(--ink) 38%, transparent);
+    box-shadow: inset 0 0 0 5px color-mix(in srgb, var(--parchment) 2%, transparent);
     transform: rotate(45deg);
 }
 
@@ -469,7 +473,7 @@
 
 .lobby-loading-mark::after {
     inset: 23px;
-    border-top-color: #91ad55;
+    border-top-color: var(--green);
     animation-direction: reverse;
     animation-duration: 850ms;
 }
@@ -484,7 +488,7 @@
 .connection-status {
     min-height: 36px;
     margin: 10px 0 0;
-    color: #b8a47d;
+    color: color-mix(in srgb, var(--parchment-muted) 85%, var(--border));
     font-family: "Courier New", monospace;
     font-size: 11px;
     font-weight: 700;
@@ -493,15 +497,15 @@
 }
 
 .connection-status.is-error {
-    color: #e08a72;
+    color: var(--red);
 }
 
 .menu-text-button {
     display: block;
     margin: 14px auto 0;
     padding: 7px 11px;
-    color: #ac9976;
-    border-bottom: 1px solid rgba(199, 150, 67, 0.35);
+    color: color-mix(in srgb, var(--parchment-muted) 70%, var(--border));
+    border-bottom: 1px solid color-mix(in srgb, var(--gold) 35%, transparent);
     font-family: "Courier New", monospace;
     font-size: 10px;
     font-weight: 700;
@@ -512,7 +516,7 @@
 }
 
 .menu-text-button:hover {
-    color: #f0dba9;
+    color: color-mix(in srgb, var(--parchment) 80%, var(--gold-bright));
     border-color: var(--gold-bright);
 }
 
@@ -522,7 +526,7 @@
     justify-content: center;
     gap: 13px;
     margin-top: 25px;
-    color: #9f8d70;
+    color: color-mix(in srgb, var(--parchment-muted) 55%, var(--border));
     font-family: "Courier New", monospace;
     font-size: 11px;
     font-style: normal;
@@ -547,10 +551,10 @@
 #menu-screen kbd {
     min-width: 34px;
     padding: 3px 6px 2px;
-    color: #e8d29f;
-    border: 1px solid #70502a;
-    background: #241a13;
-    box-shadow: 0 2px 0 #100b08;
+    color: color-mix(in srgb, var(--parchment) 75%, var(--gold));
+    border: 1px solid var(--gold-dark);
+    background: color-mix(in srgb, var(--panel-deep) 40%, var(--panel));
+    box-shadow: 0 2px 0 color-mix(in srgb, var(--ink) 73%, var(--screen-void));
     font-family: "Courier New", monospace;
     font-size: 10px;
     font-weight: 700;
@@ -567,10 +571,10 @@
     gap: 10px;
     height: 48px;
     padding: 0 10px 0 13px;
-    color: #e4d3ac;
-    border: 1px solid rgba(199, 150, 67, 0.64);
-    background: linear-gradient(180deg, rgba(54, 40, 27, 0.94), rgba(25, 18, 13, 0.96));
-    box-shadow: 0 3px 0 rgba(12, 8, 5, 0.9), inset 0 1px rgba(255, 235, 191, 0.13);
+    color: color-mix(in srgb, var(--parchment) 65%, var(--parchment-muted));
+    border: 1px solid color-mix(in srgb, var(--gold) 64%, transparent);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--panel-raised) 94%, transparent), color-mix(in srgb, var(--panel-deep) 96%, transparent));
+    box-shadow: 0 3px 0 color-mix(in srgb, var(--ink) 90%, transparent), inset 0 1px color-mix(in srgb, var(--parchment) 13%, transparent);
     font-family: "Courier New", monospace;
     font-size: 12px;
     font-weight: 700;
@@ -581,7 +585,7 @@
 }
 
 .fullscreen-button:hover {
-    color: #fff3d2;
+    color: var(--parchment);
     border-color: var(--gold-bright);
     filter: brightness(1.12);
     transform: translateY(-2px);
@@ -616,7 +620,7 @@
     left: 1px;
     border-top: 2px solid var(--gold-bright);
     border-left: 2px solid var(--gold-bright);
-    box-shadow: 9px 0 0 -1px #1d150e, 9px 0 0 0 var(--gold-bright);
+    box-shadow: 9px 0 0 -1px var(--panel-deep), 9px 0 0 0 var(--gold-bright);
 }
 
 .fullscreen-icon::after {
@@ -624,7 +628,7 @@
     bottom: 1px;
     border-right: 2px solid var(--gold-bright);
     border-bottom: 2px solid var(--gold-bright);
-    box-shadow: -9px 0 0 -1px #1d150e, -9px 0 0 0 var(--gold-bright);
+    box-shadow: -9px 0 0 -1px var(--panel-deep), -9px 0 0 0 var(--gold-bright);
 }
 
 @keyframes menu-arrive {

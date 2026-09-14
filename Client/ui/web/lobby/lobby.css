@@ -1,6 +1,6 @@
 #lobby-screen {
     color: var(--parchment);
-    background: #15130f;
+    background: var(--panel-deep);
     isolation: isolate;
 }
 
@@ -10,9 +10,9 @@
     inset: 0;
     pointer-events: none;
     background:
-        radial-gradient(circle at 50% 44%, rgba(92, 108, 55, 0.16), transparent 45%),
-        linear-gradient(90deg, rgba(10, 13, 9, 0.54), rgba(14, 12, 9, 0.32) 50%, rgba(10, 9, 7, 0.65)),
-        linear-gradient(180deg, rgba(10, 8, 6, 0.22), rgba(10, 8, 6, 0.5));
+        radial-gradient(circle at 50% 44%, color-mix(in srgb, color-mix(in srgb, var(--terrain-grass) 70%, var(--map-background)) 16%, transparent), transparent 45%),
+        linear-gradient(90deg, color-mix(in srgb, var(--map-background) 54%, transparent), color-mix(in srgb, color-mix(in srgb, var(--screen-void) 80%, var(--border-subtle)) 32%, transparent) 50%, color-mix(in srgb, color-mix(in srgb, var(--screen-void) 95%, var(--parchment-muted)) 65%, transparent)),
+        linear-gradient(180deg, color-mix(in srgb, color-mix(in srgb, var(--screen-void) 86.2%, var(--border-subtle)) 22%, transparent), color-mix(in srgb, color-mix(in srgb, var(--screen-void) 86.2%, var(--border-subtle)) 50%, transparent));
 }
 
 .lobby-atmosphere::after {
@@ -21,8 +21,8 @@
     inset: 0;
     opacity: 0.42;
     background-image:
-        linear-gradient(rgba(225, 190, 111, 0.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(225, 190, 111, 0.025) 1px, transparent 1px);
+        linear-gradient(color-mix(in srgb, color-mix(in srgb, var(--gold-bright) 91.6%, var(--border-subtle)) 2.5%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, color-mix(in srgb, var(--gold-bright) 91.6%, var(--border-subtle)) 2.5%, transparent) 1px, transparent 1px);
     background-size: 32px 32px;
 }
 
@@ -38,17 +38,21 @@
     padding: 0 20px;
     border: 2px solid var(--gold-dark);
     background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.028) 0 1px, transparent 1px 15px),
-        linear-gradient(225deg, rgba(0, 0, 0, 0.07) 0 1px, transparent 1px 19px),
-        linear-gradient(180deg, rgba(50, 37, 27, 0.985), rgba(23, 17, 13, 0.995));
+        linear-gradient(135deg, color-mix(in srgb, var(--parchment) 2.8%, transparent) 0 1px, transparent 1px 15px),
+        linear-gradient(225deg, color-mix(in srgb, var(--screen-void) 7%, transparent) 0 1px, transparent 1px 19px),
+        linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--panel-raised) 98.5%, transparent),
+            color-mix(in srgb, var(--panel-deep) 99.5%, transparent)
+        );
     background-size: 15px 15px, 19px 19px, auto;
     box-shadow:
         0 0 0 2px var(--ink),
-        0 0 0 5px rgba(199, 150, 67, 0.68),
-        0 0 0 10px rgba(18, 13, 9, 0.88),
-        0 30px 70px rgba(5, 5, 4, 0.62),
-        inset 0 1px rgba(255, 235, 190, 0.12),
-        inset 0 -14px 32px rgba(0, 0, 0, 0.24);
+        0 0 0 5px color-mix(in srgb, var(--gold) 68%, transparent),
+        0 0 0 10px color-mix(in srgb, color-mix(in srgb, var(--screen-void) 75.6%, var(--panel-hover)) 88%, transparent),
+        0 30px 70px color-mix(in srgb, color-mix(in srgb, var(--screen-void) 97.8%, var(--parchment)) 62%, transparent),
+        inset 0 1px color-mix(in srgb, var(--parchment) 12%, transparent),
+        inset 0 -14px 32px color-mix(in srgb, var(--screen-void) 24%, transparent);
     animation: lobby-arrive 280ms ease-out both;
 }
 
@@ -56,7 +60,7 @@
     content: "";
     position: absolute;
     inset: 8px;
-    border: 1px solid rgba(214, 169, 91, 0.23);
+    border: 1px solid color-mix(in srgb, color-mix(in srgb, var(--gold) 58.8%, var(--gold-bright)) 23%, transparent);
     pointer-events: none;
 }
 
@@ -71,7 +75,7 @@
     place-items: center;
     color: var(--gold-bright);
     border: 2px solid var(--ink);
-    background: #4b321c;
+    background: var(--panel-hover);
     box-shadow: 0 0 0 2px var(--gold-dark);
     font-family: Georgia, serif;
     font-size: 11px;
@@ -85,7 +89,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 13px 9px 10px;
-    border-bottom: 1px solid rgba(199, 150, 67, 0.32);
+    border-bottom: 1px solid color-mix(in srgb, var(--gold) 32%, transparent);
 }
 
 .lobby-heading {
@@ -105,16 +109,16 @@
 
 .lobby-heading h1 {
     margin: 1px 0 0;
-    color: #fff1cf;
+    color: var(--parchment);
     font-family: Georgia, "Times New Roman", serif;
     font-size: 30px;
     line-height: 35px;
-    text-shadow: 0 3px #120c08;
+    text-shadow: 0 3px color-mix(in srgb, var(--screen-void) 20%, var(--ink));
 }
 
 .lobby-heading p {
     margin: 2px 0 0;
-    color: #a99776;
+    color: color-mix(in srgb, var(--parchment-muted) 69.8%, var(--border));
     font-size: 12px;
     line-height: 17px;
 }
@@ -128,13 +132,13 @@
 .lobby-code-block {
     min-width: 245px;
     padding-right: 21px;
-    border-right: 1px solid rgba(199, 150, 67, 0.28);
+    border-right: 1px solid color-mix(in srgb, var(--gold) 28%, transparent);
 }
 
 .lobby-code-block > span {
     display: block;
     margin-bottom: 4px;
-    color: #9b896b;
+    color: color-mix(in srgb, var(--panel-hover) 51.1%, var(--parchment));
     font-family: "Courier New", monospace;
     font-size: 8px;
     font-weight: 700;
@@ -149,13 +153,13 @@
 }
 
 #lobby-code {
-    color: #f7d780;
+    color: color-mix(in srgb, var(--parchment) 23.7%, var(--gold-bright));
     font-family: "Courier New", monospace;
     font-size: 23px;
     line-height: 28px;
     letter-spacing: 3px;
     white-space: nowrap;
-    text-shadow: 0 2px #100b08, 0 0 12px rgba(240, 202, 115, 0.16);
+    text-shadow: 0 2px color-mix(in srgb, var(--screen-void) 27.1%, var(--ink)), 0 0 12px color-mix(in srgb, var(--gold-bright) 16%, transparent);
 }
 
 .lobby-icon-button,
@@ -166,10 +170,10 @@
     gap: 6px;
     height: 31px;
     padding: 0 8px;
-    color: #cbb98f;
-    border: 1px solid #694a28;
-    background: linear-gradient(180deg, #34261b, #211811);
-    box-shadow: 0 2px 0 #100b08, inset 0 1px rgba(255, 235, 190, 0.08);
+    color: color-mix(in srgb, var(--parchment) 71.2%, var(--border));
+    border: 1px solid color-mix(in srgb, var(--gold) 30.4%, var(--danger-surface));
+    background: linear-gradient(180deg, color-mix(in srgb, var(--panel-deep) 43.9%, var(--panel-hover)), color-mix(in srgb, var(--screen-void) 54.9%, var(--panel-hover)));
+    box-shadow: 0 2px 0 color-mix(in srgb, var(--screen-void) 27.1%, var(--ink)), inset 0 1px color-mix(in srgb, var(--parchment) 8%, transparent);
     font-family: "Courier New", monospace;
     font-size: 8px;
     font-weight: 700;
@@ -180,7 +184,7 @@
 
 .lobby-icon-button:hover,
 .lobby-field-action:hover {
-    color: #fff0c9;
+    color: var(--parchment);
     border-color: var(--gold-bright);
     filter: brightness(1.1);
     transform: translateY(-1px);
@@ -188,8 +192,8 @@
 
 .lobby-icon-button.is-copied,
 .lobby-field-action.is-copied {
-    color: #c9dc87;
-    border-color: #8ea54d;
+    color: color-mix(in srgb, var(--parchment) 41.8%, var(--green));
+    border-color: color-mix(in srgb, var(--gold-dark) 35.8%, var(--green));
 }
 
 .lobby-copy-icon {
@@ -208,7 +212,7 @@
     width: 9px;
     height: 10px;
     border: 1px solid currentColor;
-    background: #2d2118;
+    background: color-mix(in srgb, var(--panel) 97.5%, var(--gold-dark));
 }
 
 .lobby-presence {
@@ -231,7 +235,7 @@
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    color: #c7b68f;
+    color: color-mix(in srgb, var(--parchment-muted) 92.2%, var(--gold-bright));
     font-size: 9px;
     line-height: 12px;
     letter-spacing: 1px;
@@ -240,16 +244,16 @@
 .lobby-status i {
     width: 8px;
     height: 8px;
-    border: 1px solid #d5b04f;
+    border: 1px solid color-mix(in srgb, var(--gold) 62.6%, var(--gold-bright));
     border-radius: 50%;
-    background: #9b7b31;
-    box-shadow: 0 0 8px rgba(213, 176, 79, 0.38);
+    background: color-mix(in srgb, var(--screen-void) 21%, var(--gold));
+    box-shadow: 0 0 8px color-mix(in srgb, color-mix(in srgb, var(--gold) 62.6%, var(--gold-bright)) 38%, transparent);
 }
 
 .lobby-status.is-online i {
-    border-color: #bdd474;
-    background: #789744;
-    box-shadow: 0 0 8px rgba(157, 190, 87, 0.45);
+    border-color: color-mix(in srgb, var(--gold-bright) 32.2%, var(--green));
+    background: color-mix(in srgb, var(--screen-void) 27.9%, var(--green));
+    box-shadow: 0 0 8px color-mix(in srgb, color-mix(in srgb, var(--gold-dark) 15.9%, var(--green)) 45%, transparent);
 }
 
 .lobby-status.is-busy i {
@@ -257,29 +261,29 @@
 }
 
 .lobby-status.is-error {
-    color: #e59a82;
+    color: color-mix(in srgb, var(--gold) 3.7%, var(--red));
 }
 
 .lobby-status.is-error i {
-    border-color: #d67861;
-    background: #9e493b;
-    box-shadow: 0 0 8px rgba(195, 80, 60, 0.42);
+    border-color: color-mix(in srgb, var(--gold-dark) 28.1%, var(--red));
+    background: color-mix(in srgb, var(--gold-dark) 77.5%, var(--red));
+    box-shadow: 0 0 8px color-mix(in srgb, color-mix(in srgb, var(--gold-dark) 60.3%, var(--red)) 42%, transparent);
 }
 
 .lobby-role {
     padding: 4px 8px 3px;
-    color: #d4c093;
-    border: 1px solid rgba(199, 150, 67, 0.42);
-    background: rgba(15, 11, 8, 0.38);
+    color: color-mix(in srgb, var(--parchment) 77.2%, var(--gold-dark));
+    border: 1px solid color-mix(in srgb, var(--gold) 42%, transparent);
+    background: color-mix(in srgb, color-mix(in srgb, var(--screen-void) 73.6%, var(--panel-raised)) 38%, transparent);
     font-size: 8px;
     line-height: 11px;
     letter-spacing: 1.2px;
 }
 
 .lobby-role.is-host {
-    color: #d5e194;
-    border-color: rgba(140, 169, 79, 0.58);
-    background: rgba(67, 83, 37, 0.25);
+    color: color-mix(in srgb, var(--parchment) 60.1%, var(--green));
+    border-color: color-mix(in srgb, color-mix(in srgb, var(--screen-void) 17.7%, var(--green)) 58%, transparent);
+    background: color-mix(in srgb, color-mix(in srgb, var(--screen-void) 60.2%, var(--green)) 25%, transparent);
 }
 
 .lobby-content {
@@ -296,11 +300,15 @@
 .lobby-side-card {
     position: relative;
     min-width: 0;
-    border: 1px solid rgba(142, 97, 47, 0.84);
+    border: 1px solid color-mix(in srgb, var(--border) 84%, transparent);
     background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.025), transparent 38%),
-        linear-gradient(180deg, rgba(41, 31, 23, 0.94), rgba(23, 18, 14, 0.97));
-    box-shadow: inset 0 0 0 4px rgba(255, 230, 177, 0.018), 0 3px 0 rgba(10, 7, 5, 0.7);
+        linear-gradient(135deg, color-mix(in srgb, var(--parchment) 2.5%, transparent), transparent 38%),
+        linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--panel) 94%, transparent),
+            color-mix(in srgb, var(--panel-deep) 97%, transparent)
+        );
+    box-shadow: inset 0 0 0 4px color-mix(in srgb, color-mix(in srgb, var(--parchment) 97.9%, var(--gold-bright)) 1.8%, transparent), 0 3px 0 color-mix(in srgb, color-mix(in srgb, var(--screen-void) 54.2%, var(--ink)) 70%, transparent);
 }
 
 .lobby-map-panel {
@@ -315,7 +323,7 @@
     content: "";
     position: absolute;
     inset: 5px;
-    border: 1px solid rgba(199, 150, 67, 0.13);
+    border: 1px solid color-mix(in srgb, var(--gold) 13%, transparent);
     pointer-events: none;
 }
 
@@ -330,15 +338,15 @@
 
 .lobby-section-header {
     padding: 0 7px 8px;
-    border-bottom: 1px solid rgba(199, 150, 67, 0.23);
+    border-bottom: 1px solid color-mix(in srgb, var(--gold) 23%, transparent);
 }
 
 .lobby-section-header h2,
 .lobby-side-heading h2 {
     margin: 1px 0 0;
-    color: #f6e3bb;
+    color: var(--parchment);
     font-family: Georgia, "Times New Roman", serif;
-    text-shadow: 0 2px #100b08;
+    text-shadow: 0 2px color-mix(in srgb, var(--screen-void) 27.1%, var(--ink));
 }
 
 .lobby-section-header h2 {
@@ -354,9 +362,9 @@
 
 .lobby-map-meta span {
     padding: 4px 7px;
-    color: #b8a57e;
-    border: 1px solid rgba(199, 150, 67, 0.28);
-    background: rgba(10, 8, 6, 0.3);
+    color: color-mix(in srgb, var(--parchment) 57.1%, var(--border));
+    border: 1px solid color-mix(in srgb, var(--gold) 28%, transparent);
+    background: color-mix(in srgb, color-mix(in srgb, var(--screen-void) 86.2%, var(--border-subtle)) 30%, transparent);
     font-family: "Courier New", monospace;
     font-size: 8px;
     font-weight: 700;
@@ -369,14 +377,14 @@
     min-height: 0;
     margin: 10px 4px 0;
     overflow: hidden;
-    border: 2px solid #503a25;
+    border: 2px solid color-mix(in srgb, var(--panel-hover) 84.5%, var(--gold-dark));
     background:
-        radial-gradient(circle at 50% 45%, rgba(96, 108, 60, 0.2), transparent 50%),
-        linear-gradient(180deg, #121710, #0d110c);
+        radial-gradient(circle at 50% 45%, color-mix(in srgb, color-mix(in srgb, var(--terrain-grass) 70%, var(--map-background)) 20%, transparent), transparent 50%),
+        linear-gradient(180deg, color-mix(in srgb, var(--map-background) 96%, var(--terrain-grass)), var(--map-background));
     box-shadow:
-        0 0 0 1px #100b08,
-        0 0 0 3px rgba(169, 120, 53, 0.23),
-        inset 0 0 42px rgba(4, 5, 3, 0.72);
+        0 0 0 1px color-mix(in srgb, var(--screen-void) 27.1%, var(--ink)),
+        0 0 0 3px color-mix(in srgb, color-mix(in srgb, var(--gold) 60%, var(--gold-dark)) 23%, transparent),
+        inset 0 0 42px color-mix(in srgb, var(--map-background) 72%, transparent);
 }
 
 .lobby-map-frame::before {
@@ -384,8 +392,8 @@
     position: absolute;
     z-index: 2;
     inset: 8px;
-    border: 1px solid rgba(235, 202, 127, 0.13);
-    box-shadow: inset 0 0 45px rgba(4, 5, 3, 0.42);
+    border: 1px solid color-mix(in srgb, var(--map-outline) 36%, transparent);
+    box-shadow: inset 0 0 45px color-mix(in srgb, var(--map-background) 42%, transparent);
     pointer-events: none;
 }
 
@@ -407,8 +415,8 @@
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    color: #d4c29b;
-    background: rgba(11, 14, 10, 0.86);
+    color: color-mix(in srgb, var(--panel-hover) 17.4%, var(--parchment));
+    background: color-mix(in srgb, var(--map-background) 86%, transparent);
     text-align: center;
 }
 
@@ -422,7 +430,7 @@
 .lobby-map-empty small {
     max-width: 300px;
     margin-top: 3px;
-    color: #8f8166;
+    color: color-mix(in srgb, var(--panel) 49.6%, var(--parchment));
     font-size: 11px;
     line-height: 16px;
 }
@@ -431,7 +439,7 @@
     position: relative;
     width: 27px;
     height: 27px;
-    border: 2px solid rgba(199, 150, 67, 0.24);
+    border: 2px solid color-mix(in srgb, var(--gold) 24%, transparent);
     transform: rotate(45deg);
 }
 
@@ -452,11 +460,11 @@
     width: 40px;
     height: 40px;
     place-items: center;
-    color: #e7ca86;
-    border: 1px solid rgba(222, 184, 101, 0.48);
+    color: color-mix(in srgb, var(--parchment) 63.6%, var(--gold));
+    border: 1px solid color-mix(in srgb, color-mix(in srgb, var(--gold-bright) 84.7%, var(--gold-dark)) 48%, transparent);
     border-radius: 50%;
-    background: rgba(16, 14, 10, 0.62);
-    box-shadow: 0 2px 8px rgba(5, 5, 3, 0.42);
+    background: color-mix(in srgb, color-mix(in srgb, var(--screen-void) 77%, var(--border-subtle)) 62%, transparent);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--map-background) 42%, transparent);
     font-family: Georgia, serif;
     font-size: 10px;
     font-weight: 700;
@@ -470,7 +478,7 @@
     width: 0;
     height: 0;
     border-right: 4px solid transparent;
-    border-bottom: 8px solid #d8ae56;
+    border-bottom: 8px solid color-mix(in srgb, var(--gold) 57.3%, var(--gold-bright));
     border-left: 4px solid transparent;
 }
 
@@ -491,12 +499,12 @@
 
 .lobby-map-scale i {
     flex: 1;
-    border-top: 1px solid rgba(235, 211, 156, 0.75);
-    border-right: 1px solid rgba(235, 211, 156, 0.75);
+    border-top: 1px solid color-mix(in srgb, color-mix(in srgb, var(--parchment) 80.2%, var(--gold)) 75%, transparent);
+    border-right: 1px solid color-mix(in srgb, color-mix(in srgb, var(--parchment) 80.2%, var(--gold)) 75%, transparent);
 }
 
 .lobby-map-scale i:first-child {
-    border-left: 1px solid rgba(235, 211, 156, 0.75);
+    border-left: 1px solid color-mix(in srgb, color-mix(in srgb, var(--parchment) 80.2%, var(--gold)) 75%, transparent);
 }
 
 .lobby-world-tuning {
@@ -505,11 +513,11 @@
     min-width: 0;
     margin: 8px 4px 0;
     padding: 7px 8px 6px;
-    border: 1px solid rgba(139, 97, 50, 0.64);
+    border: 1px solid color-mix(in srgb, color-mix(in srgb, var(--gold) 54%, var(--danger-surface)) 64%, transparent);
     background:
-        linear-gradient(105deg, rgba(255, 255, 255, 0.025), transparent 45%),
-        rgba(13, 10, 8, 0.48);
-    box-shadow: inset 0 0 0 3px rgba(218, 166, 76, 0.025);
+        linear-gradient(105deg, color-mix(in srgb, var(--parchment) 2.5%, transparent), transparent 45%),
+        color-mix(in srgb, color-mix(in srgb, var(--screen-void) 82.2%, var(--border-subtle)) 48%, transparent);
+    box-shadow: inset 0 0 0 3px color-mix(in srgb, color-mix(in srgb, var(--gold) 69.5%, var(--gold-bright)) 2.5%, transparent);
 }
 
 .lobby-tuning-heading {
@@ -528,7 +536,7 @@
 }
 
 .lobby-tuning-heading strong {
-    color: #e9d4a6;
+    color: color-mix(in srgb, var(--parchment) 85.8%, var(--gold));
     font-family: Georgia, "Times New Roman", serif;
     font-size: 13px;
     line-height: 16px;
@@ -536,7 +544,7 @@
 }
 
 .lobby-tuning-heading small {
-    color: #7f735c;
+    color: color-mix(in srgb, var(--ink) 52.1%, var(--parchment));
     font-size: 8px;
     line-height: 13px;
     white-space: nowrap;
@@ -553,12 +561,16 @@
 .lobby-composition {
     min-width: 0;
     height: 72px;
-    border: 1px solid rgba(121, 83, 43, 0.48);
-    background: linear-gradient(180deg, rgba(39, 29, 21, 0.76), rgba(19, 15, 11, 0.84));
+    border: 1px solid color-mix(in srgb, var(--border) 48%, transparent);
+    background: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--panel) 76%, transparent),
+        color-mix(in srgb, var(--panel-deep) 84%, transparent)
+    );
 }
 
 .lobby-tuning-control {
-    --tuning-accent: #879d56;
+    --tuning-accent: var(--terrain-grass);
     display: grid;
     grid-template-rows: 21px 22px 13px;
     padding: 6px 8px 5px;
@@ -566,15 +578,15 @@
 }
 
 .lobby-tuning-control--land {
-    --tuning-accent: #5b98a7;
+    --tuning-accent: var(--terrain-water);
 }
 
 .lobby-tuning-control--mountains {
-    --tuning-accent: #a7a394;
+    --tuning-accent: var(--terrain-mountain);
 }
 
 .lobby-tuning-control--forests {
-    --tuning-accent: #5b9956;
+    --tuning-accent: var(--terrain-forest);
 }
 
 .lobby-tuning-label,
@@ -587,7 +599,7 @@
 
 .lobby-tuning-label strong {
     overflow: hidden;
-    color: #d8c292;
+    color: color-mix(in srgb, var(--parchment) 78.3%, var(--gold-dark));
     font-family: "Courier New", monospace;
     font-size: 8px;
     line-height: 12px;
@@ -598,7 +610,7 @@
 }
 
 .lobby-tuning-label output {
-    color: #f1d789;
+    color: color-mix(in srgb, var(--parchment) 36%, var(--gold-bright));
     font-family: "Courier New", monospace;
     font-size: 9px;
     font-weight: 700;
@@ -619,30 +631,30 @@
 
 .lobby-tuning-control input[type="range"]::-webkit-slider-runnable-track {
     height: 4px;
-    border: 1px solid rgba(211, 183, 125, 0.2);
+    border: 1px solid color-mix(in srgb, color-mix(in srgb, var(--text-disabled) 38.4%, var(--gold-bright)) 20%, transparent);
     background: linear-gradient(
         90deg,
         var(--tuning-accent) 0 var(--range-progress),
-        #35291f var(--range-progress) 100%
+        color-mix(in srgb, var(--panel) 93.8%, var(--parchment-muted)) var(--range-progress) 100%
     );
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+    box-shadow: inset 0 1px 2px color-mix(in srgb, var(--screen-void) 60%, transparent);
 }
 
 .lobby-tuning-control input[type="range"]::-webkit-slider-thumb {
     width: 12px;
     height: 12px;
     margin-top: -5px;
-    border: 2px solid #25190f;
+    border: 2px solid color-mix(in srgb, var(--ink) 84.4%, var(--gold-dark));
     border-radius: 1px;
     appearance: none;
     -webkit-appearance: none;
-    background: #efd489;
-    box-shadow: 0 0 0 1px var(--tuning-accent), 0 2px 4px rgba(0, 0, 0, 0.55);
+    background: color-mix(in srgb, var(--parchment) 34.6%, var(--gold-bright));
+    box-shadow: 0 0 0 1px var(--tuning-accent), 0 2px 4px color-mix(in srgb, var(--screen-void) 55%, transparent);
     transform: rotate(45deg);
 }
 
 .lobby-tuning-control input[type="range"]:focus-visible {
-    outline: 2px solid #fff1bd;
+    outline: 2px solid var(--parchment);
     outline-offset: 1px;
 }
 
@@ -655,7 +667,7 @@
 }
 
 .lobby-tuning-scale {
-    color: #95866b;
+    color: color-mix(in srgb, var(--panel-raised) 33.2%, var(--parchment-muted));
     font-size: 8px;
     line-height: 10px;
     white-space: nowrap;
@@ -668,7 +680,7 @@
 .lobby-composition-title {
     display: block;
     margin-bottom: 4px;
-    color: #b09d76;
+    color: color-mix(in srgb, var(--parchment) 51%, var(--border));
     font-family: "Courier New", monospace;
     font-size: 8px;
     font-weight: 700;
@@ -688,7 +700,7 @@
     grid-template-columns: 8px minmax(0, 1fr) auto;
     align-items: center;
     gap: 4px;
-    color: #b1a080;
+    color: color-mix(in srgb, var(--parchment) 61.9%, var(--border-subtle));
     font-size: 8px;
     line-height: 12px;
     white-space: nowrap;
@@ -700,7 +712,7 @@
 }
 
 .lobby-composition-grid strong {
-    color: #e4cc93;
+    color: color-mix(in srgb, var(--parchment) 71.1%, var(--gold));
     font-family: "Courier New", monospace;
     font-size: 9px;
 }
@@ -713,7 +725,7 @@
     justify-content: center;
     gap: 22px;
     padding-bottom: 1px;
-    color: #9f8f71;
+    color: color-mix(in srgb, var(--parchment) 51.3%, var(--border-subtle));
     font-family: "Courier New", monospace;
     font-size: 8px;
     font-weight: 700;
@@ -731,24 +743,24 @@
 .lobby-legend-swatch {
     width: 11px;
     height: 11px;
-    border: 1px solid rgba(237, 217, 167, 0.22);
-    box-shadow: inset 0 1px rgba(255, 255, 255, 0.12);
+    border: 1px solid color-mix(in srgb, color-mix(in srgb, var(--parchment) 89%, var(--gold)) 22%, transparent);
+    box-shadow: inset 0 1px color-mix(in srgb, var(--parchment) 12%, transparent);
 }
 
 .lobby-legend-swatch--water {
-    background: #39778b;
+    background: var(--map-water-1);
 }
 
 .lobby-legend-swatch--grass {
-    background: #69844c;
+    background: var(--map-grass-1);
 }
 
 .lobby-legend-swatch--forest {
-    background: #335d32;
+    background: var(--map-small-forest-2);
 }
 
 .lobby-legend-swatch--mountain {
-    background: #77786e;
+    background: var(--map-mountain-1);
 }
 
 .lobby-sidebar {
@@ -767,7 +779,7 @@
     min-height: 47px;
     margin-bottom: 10px;
     padding: 0 2px 9px;
-    border-bottom: 1px solid rgba(199, 150, 67, 0.25);
+    border-bottom: 1px solid color-mix(in srgb, var(--gold) 25%, transparent);
 }
 
 .lobby-side-heading h2 {
@@ -777,17 +789,17 @@
 
 .lobby-authority {
     padding: 4px 6px 3px;
-    color: #9e8b69;
-    border: 1px solid rgba(199, 150, 67, 0.3);
-    background: rgba(11, 8, 6, 0.28);
+    color: color-mix(in srgb, var(--parchment-muted) 56.5%, var(--border));
+    border: 1px solid color-mix(in srgb, var(--gold) 30%, transparent);
+    background: color-mix(in srgb, color-mix(in srgb, var(--screen-void) 74.7%, var(--panel)) 28%, transparent);
     font-size: 7px;
     line-height: 10px;
     letter-spacing: 0.8px;
 }
 
 .lobby-authority.is-host {
-    color: #c7d681;
-    border-color: rgba(137, 164, 75, 0.46);
+    color: color-mix(in srgb, var(--parchment) 34.7%, var(--green));
+    border-color: color-mix(in srgb, color-mix(in srgb, var(--gold-dark) 38.3%, var(--green)) 46%, transparent);
 }
 
 .lobby-field-label {
@@ -795,7 +807,7 @@
     z-index: 1;
     display: block;
     margin: 9px 0 5px 2px;
-    color: #d4bd87;
+    color: color-mix(in srgb, var(--parchment-muted) 63.3%, var(--gold-bright));
     font-family: "Courier New", monospace;
     font-size: 9px;
     font-weight: 700;
@@ -810,17 +822,17 @@
     display: flex;
     height: 45px;
     align-items: center;
-    border: 1px solid #674721;
+    border: 1px solid color-mix(in srgb, var(--panel) 19.7%, var(--gold-dark));
     background:
-        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.015) 0 1px, transparent 1px 7px),
-        linear-gradient(180deg, #120e0b, #1c1510);
-    box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.46), 0 2px 0 #0d0906;
+        repeating-linear-gradient(90deg, color-mix(in srgb, var(--parchment) 1.5%, transparent) 0 1px, transparent 1px 7px),
+        linear-gradient(180deg, color-mix(in srgb, var(--screen-void) 75.3%, var(--border-subtle)), color-mix(in srgb, var(--ink) 95.6%, var(--text-disabled)));
+    box-shadow: inset 0 3px 8px color-mix(in srgb, var(--screen-void) 46%, transparent), 0 2px 0 color-mix(in srgb, var(--screen-void) 41.3%, var(--ink));
     transition: border-color 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
 }
 
 .lobby-field:focus-within {
     border-color: var(--gold-bright);
-    box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.46), 0 0 0 3px rgba(218, 166, 76, 0.12), 0 2px 0 #0d0906;
+    box-shadow: inset 0 3px 8px color-mix(in srgb, var(--screen-void) 46%, transparent), 0 0 0 3px color-mix(in srgb, color-mix(in srgb, var(--gold) 69.5%, var(--gold-bright)) 12%, transparent), 0 2px 0 color-mix(in srgb, var(--screen-void) 41.3%, var(--ink));
 }
 
 .lobby-field.is-locked {
@@ -833,8 +845,8 @@
     height: 27px;
     flex: 0 0 auto;
     place-items: center;
-    color: #bb893f;
-    border-right: 1px solid rgba(199, 150, 67, 0.24);
+    color: color-mix(in srgb, var(--gold) 83.9%, var(--gold-dark));
+    border-right: 1px solid color-mix(in srgb, var(--gold) 24%, transparent);
     font-family: "Courier New", monospace;
     font-size: 15px;
     font-weight: 700;
@@ -850,7 +862,7 @@
     height: 100%;
     flex: 1;
     padding: 0 10px;
-    color: #f0d79d;
+    color: color-mix(in srgb, var(--parchment) 63.5%, var(--gold-bright));
     caret-color: var(--gold-bright);
     font-family: "Courier New", monospace;
     font-size: 15px;
@@ -862,7 +874,7 @@
 
 .lobby-field input[readonly],
 .lobby-field input:disabled {
-    color: #aa9978;
+    color: color-mix(in srgb, var(--panel-hover) 42%, var(--parchment));
     cursor: not-allowed;
 }
 
@@ -874,7 +886,7 @@
 
 .lobby-field-suffix {
     padding-right: 11px;
-    color: #8e7b5c;
+    color: color-mix(in srgb, var(--text-disabled) 57.3%, var(--border));
     font-family: "Courier New", monospace;
     font-size: 8px;
     font-weight: 700;
@@ -886,13 +898,13 @@
     z-index: 1;
     min-height: 13px;
     margin: 4px 2px 0;
-    color: #82745c;
+    color: color-mix(in srgb, var(--panel) 56.2%, var(--parchment));
     font-size: 9px;
     line-height: 13px;
 }
 
 .lobby-field-hint.is-invalid {
-    color: #d77f68;
+    color: color-mix(in srgb, var(--gold-dark) 23.2%, var(--red));
 }
 
 .lobby-config-actions {
@@ -918,29 +930,29 @@
     min-width: 0;
     height: 54px;
     padding: 0 9px 0 7px;
-    color: #e4d2ab;
-    border: 1px solid color-mix(in srgb, var(--lobby-button-accent) 62%, #342316);
+    color: var(--parchment);
+    border: 1px solid color-mix(in srgb, var(--lobby-button-accent) 62%, var(--panel-deep));
     background:
-        linear-gradient(105deg, rgba(255, 255, 255, 0.045), transparent 38%),
-        linear-gradient(180deg, #3e2d20, #241a13);
-    box-shadow: 0 3px 0 #100b08, inset 0 1px rgba(255, 235, 190, 0.1), inset 3px 0 var(--lobby-button-accent);
+        linear-gradient(105deg, color-mix(in srgb, var(--parchment) 4.5%, transparent), transparent 38%),
+        linear-gradient(180deg, var(--panel-raised), var(--panel));
+    box-shadow: 0 3px 0 color-mix(in srgb, var(--screen-void) 27.1%, var(--ink)), inset 0 1px color-mix(in srgb, var(--parchment) 10%, transparent), inset 3px 0 var(--lobby-button-accent);
     text-align: left;
     cursor: pointer;
     transition: border-color 120ms ease, color 120ms ease, filter 120ms ease, transform 100ms ease, box-shadow 100ms ease;
 }
 
 .lobby-button:hover:not(:disabled) {
-    color: #fff1d1;
+    color: var(--parchment);
     border-color: var(--lobby-button-bright);
     filter: brightness(1.12);
     transform: translateY(-2px);
-    box-shadow: 0 5px 0 #100b08, 0 8px 15px rgba(0, 0, 0, 0.2), inset 0 1px rgba(255, 235, 190, 0.15), inset 3px 0 var(--lobby-button-bright);
+    box-shadow: 0 5px 0 color-mix(in srgb, var(--screen-void) 27.1%, var(--ink)), 0 8px 15px color-mix(in srgb, var(--screen-void) 20%, transparent), inset 0 1px color-mix(in srgb, var(--parchment) 15%, transparent), inset 3px 0 var(--lobby-button-bright);
 }
 
 .lobby-button:active:not(:disabled) {
     filter: brightness(0.95);
     transform: translateY(2px);
-    box-shadow: 0 1px 0 #100b08, inset 0 2px 5px rgba(0, 0, 0, 0.28), inset 3px 0 var(--lobby-button-accent);
+    box-shadow: 0 1px 0 color-mix(in srgb, var(--screen-void) 27.1%, var(--ink)), inset 0 2px 5px color-mix(in srgb, var(--screen-void) 28%, transparent), inset 3px 0 var(--lobby-button-accent);
 }
 
 .lobby-button:disabled {
@@ -955,14 +967,14 @@
 }
 
 .lobby-button--start.has-pending-config small {
-    color: #e8c66f;
+    color: var(--gold-bright);
 }
 
 .lobby-button:focus-visible,
 .lobby-icon-button:focus-visible,
 .lobby-field-action:focus-visible,
 .lobby-field input:focus-visible {
-    outline: 2px solid #fff1bd;
+    outline: 2px solid var(--gold-bright);
     outline-offset: 3px;
 }
 
@@ -972,8 +984,8 @@
     height: 29px;
     place-items: center;
     color: var(--lobby-button-bright);
-    border: 1px solid color-mix(in srgb, var(--lobby-button-accent) 58%, #2b1c12);
-    background: rgba(12, 9, 7, 0.42);
+    border: 1px solid color-mix(in srgb, var(--lobby-button-accent) 58%, var(--panel-deep));
+    background: color-mix(in srgb, var(--ink) 42%, transparent);
     font-family: Georgia, serif;
     font-size: 16px;
     font-weight: 700;
@@ -1003,7 +1015,7 @@
 
 .lobby-button small {
     overflow: hidden;
-    color: #998767;
+    color: var(--parchment-muted);
     font-size: 8px;
     line-height: 11px;
     text-overflow: ellipsis;
@@ -1011,13 +1023,13 @@
 }
 
 .lobby-button--secondary {
-    --lobby-button-accent: #777449;
-    --lobby-button-bright: #c8bd70;
+    --lobby-button-accent: var(--gold-dark);
+    --lobby-button-bright: var(--gold);
 }
 
 .lobby-button--regenerate {
-    --lobby-button-accent: #487d56;
-    --lobby-button-bright: #7fc08e;
+    --lobby-button-accent: color-mix(in srgb, var(--green) 65%, var(--panel-deep));
+    --lobby-button-bright: var(--green);
 }
 
 .lobby-locked-message {
@@ -1029,16 +1041,16 @@
     justify-content: center;
     gap: 8px;
     margin: 12px 0 0;
-    color: #ae9a73;
-    border: 1px solid rgba(199, 150, 67, 0.23);
-    background: rgba(11, 8, 6, 0.27);
+    color: color-mix(in srgb, var(--parchment) 49%, var(--border));
+    border: 1px solid color-mix(in srgb, var(--gold) 23%, transparent);
+    background: color-mix(in srgb, color-mix(in srgb, var(--screen-void) 74.7%, var(--panel)) 27%, transparent);
     font-size: 10px;
     line-height: 15px;
     text-align: center;
 }
 
 .lobby-locked-message span {
-    color: #866434;
+    color: color-mix(in srgb, var(--panel-hover) 51.7%, var(--gold));
     font-size: 8px;
 }
 
@@ -1056,9 +1068,9 @@
     min-width: 31px;
     height: 27px;
     place-items: center;
-    color: #d6e491;
-    border: 1px solid rgba(139, 169, 77, 0.48);
-    background: rgba(66, 83, 37, 0.25);
+    color: color-mix(in srgb, var(--parchment) 59.9%, var(--green));
+    border: 1px solid color-mix(in srgb, color-mix(in srgb, var(--screen-void) 18.2%, var(--green)) 48%, transparent);
+    background: color-mix(in srgb, color-mix(in srgb, var(--screen-void) 60.4%, var(--green)) 25%, transparent);
     font-size: 12px;
 }
 
@@ -1074,7 +1086,7 @@
     flex-direction: column;
     gap: 5px;
     list-style: none;
-    scrollbar-color: #73512d #1c1510;
+    scrollbar-color: color-mix(in srgb, var(--gold) 37.7%, var(--danger-surface)) color-mix(in srgb, var(--ink) 95.6%, var(--text-disabled));
     scrollbar-width: thin;
 }
 
@@ -1085,13 +1097,13 @@
     align-items: center;
     gap: 8px;
     padding: 5px 7px;
-    border: 1px solid rgba(132, 93, 50, 0.45);
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.025), rgba(12, 9, 7, 0.28));
+    border: 1px solid color-mix(in srgb, color-mix(in srgb, var(--gold) 49.6%, var(--danger-surface)) 45%, transparent);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--parchment) 2.5%, transparent), color-mix(in srgb, color-mix(in srgb, var(--screen-void) 71.8%, var(--panel)) 28%, transparent));
 }
 
 .lobby-player.is-self {
-    border-color: rgba(151, 176, 83, 0.42);
-    background: linear-gradient(90deg, rgba(111, 139, 59, 0.12), rgba(12, 9, 7, 0.28));
+    border-color: color-mix(in srgb, color-mix(in srgb, var(--gold-dark) 25.9%, var(--green)) 42%, transparent);
+    background: linear-gradient(90deg, color-mix(in srgb, color-mix(in srgb, var(--screen-void) 34.1%, var(--green)) 12%, transparent), color-mix(in srgb, color-mix(in srgb, var(--screen-void) 71.8%, var(--panel)) 28%, transparent));
 }
 
 .lobby-player-avatar {
@@ -1099,10 +1111,10 @@
     width: 31px;
     height: 31px;
     place-items: center;
-    color: #ebd39a;
-    border: 1px solid #77542c;
-    background: radial-gradient(circle at 35% 28%, #594229, #281d14);
-    box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.025);
+    color: color-mix(in srgb, var(--parchment) 79.1%, var(--gold));
+    border: 1px solid color-mix(in srgb, var(--gold) 40.3%, var(--danger-surface));
+    background: radial-gradient(circle at 35% 28%, color-mix(in srgb, var(--panel-hover) 87.3%, var(--gold)), color-mix(in srgb, var(--ink) 64.6%, var(--panel-hover)));
+    box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--parchment) 2.5%, transparent);
     font-family: Georgia, serif;
     font-size: 13px;
     font-weight: 700;
@@ -1116,7 +1128,7 @@
 
 .lobby-player-copy strong {
     overflow: hidden;
-    color: #e9d8b3;
+    color: color-mix(in srgb, var(--parchment) 91.5%, var(--text-disabled));
     font-size: 11px;
     line-height: 15px;
     text-overflow: ellipsis;
@@ -1124,16 +1136,16 @@
 }
 
 .lobby-player-copy small {
-    color: #85775e;
+    color: color-mix(in srgb, var(--panel-raised) 57.9%, var(--parchment));
     font-size: 8px;
     line-height: 11px;
 }
 
 .lobby-player-badge {
     padding: 3px 5px;
-    color: #e0c271;
-    border: 1px solid rgba(199, 150, 67, 0.34);
-    background: rgba(10, 8, 6, 0.3);
+    color: color-mix(in srgb, var(--text-disabled) 18.9%, var(--gold-bright));
+    border: 1px solid color-mix(in srgb, var(--gold) 34%, transparent);
+    background: color-mix(in srgb, color-mix(in srgb, var(--screen-void) 86.2%, var(--border-subtle)) 30%, transparent);
     font-family: "Courier New", monospace;
     font-size: 7px;
     font-weight: 700;
@@ -1145,8 +1157,8 @@
     display: grid;
     min-height: 82px;
     place-items: center;
-    color: #7e715b;
-    border: 1px dashed rgba(153, 113, 59, 0.32);
+    color: color-mix(in srgb, var(--ink) 40.3%, var(--parchment-muted));
+    border: 1px dashed color-mix(in srgb, color-mix(in srgb, var(--gold-bright) 28.1%, var(--gold-dark)) 32%, transparent);
     font-size: 10px;
     font-style: italic;
 }
@@ -1159,7 +1171,7 @@
     justify-content: space-between;
     gap: 16px;
     padding: 11px 8px 12px;
-    border-top: 1px solid rgba(199, 150, 67, 0.32);
+    border-top: 1px solid color-mix(in srgb, var(--gold) 32%, transparent);
 }
 
 .lobby-button--leave,
@@ -1169,14 +1181,14 @@
 }
 
 .lobby-button--leave {
-    --lobby-button-accent: #8b463d;
-    --lobby-button-bright: #d67a69;
+    --lobby-button-accent: color-mix(in srgb, var(--red) 65%, var(--panel-deep));
+    --lobby-button-bright: var(--red);
     width: 220px;
 }
 
 .lobby-button--start {
-    --lobby-button-accent: #789442;
-    --lobby-button-bright: #c3da78;
+    --lobby-button-accent: color-mix(in srgb, var(--green) 65%, var(--panel-deep));
+    --lobby-button-bright: var(--green);
     width: 258px;
 }
 
@@ -1206,9 +1218,9 @@
     align-items: center;
     justify-content: center;
     gap: 12px;
-    color: #cfbd96;
-    border: 1px solid rgba(199, 150, 67, 0.34);
-    background: rgba(13, 10, 7, 0.34);
+    color: color-mix(in srgb, var(--parchment) 75%, var(--border));
+    border: 1px solid color-mix(in srgb, var(--gold) 34%, transparent);
+    background: color-mix(in srgb, color-mix(in srgb, var(--screen-void) 76.7%, var(--panel-raised)) 34%, transparent);
 }
 
 .lobby-waiting > span {
@@ -1221,7 +1233,7 @@
     width: 5px;
     height: 5px;
     border-radius: 50%;
-    background: #c99a47;
+    background: color-mix(in srgb, var(--gold) 92.8%, var(--gold-bright));
     animation: lobby-waiting 900ms ease-in-out infinite alternate;
 }
 
@@ -1248,7 +1260,7 @@
 }
 
 .lobby-waiting small {
-    color: #887a61;
+    color: color-mix(in srgb, var(--panel) 53.1%, var(--parchment));
     font-size: 9px;
     line-height: 12px;
 }
@@ -1261,7 +1273,7 @@
     align-items: center;
     justify-content: center;
     gap: 9px;
-    color: #e2a08d;
+    color: color-mix(in srgb, var(--parchment) 9.5%, var(--red));
 }
 
 .lobby-error > span {
@@ -1270,8 +1282,8 @@
     height: 22px;
     flex: 0 0 auto;
     place-items: center;
-    border: 1px solid #a75344;
-    background: rgba(112, 42, 33, 0.32);
+    border: 1px solid color-mix(in srgb, var(--gold-dark) 67.8%, var(--red));
+    background: color-mix(in srgb, color-mix(in srgb, var(--gold-dark) 58.2%, var(--danger-surface)) 32%, transparent);
     font-family: Georgia, serif;
     font-weight: 700;
 }

@@ -13,8 +13,8 @@
     position: absolute;
     inset: 0;
     background:
-        radial-gradient(circle at 50% 42%, rgba(95, 69, 38, 0.18), transparent 42%),
-        rgba(5, 4, 3, 0.82);
+        radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--gold-dark) 18%, transparent), transparent 42%),
+        var(--overlay);
     backdrop-filter: blur(4px) saturate(0.72);
 }
 
@@ -26,17 +26,21 @@
     border: 2px solid var(--gold-dark);
     outline: none;
     background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 13px),
-        linear-gradient(225deg, rgba(0, 0, 0, 0.08) 0 1px, transparent 1px 17px),
-        linear-gradient(180deg, rgba(55, 40, 29, 0.99), rgba(24, 17, 13, 0.995));
+        linear-gradient(135deg, color-mix(in srgb, var(--parchment) 3.5%, transparent) 0 1px, transparent 1px 13px),
+        linear-gradient(225deg, color-mix(in srgb, var(--screen-void) 8%, transparent) 0 1px, transparent 1px 17px),
+        linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--panel-raised) 99%, transparent),
+            color-mix(in srgb, var(--panel-deep) 99.5%, transparent)
+        );
     background-size: 13px 13px, 17px 17px, auto;
     box-shadow:
         0 0 0 2px var(--ink),
-        0 0 0 5px rgba(203, 151, 68, 0.7),
-        0 0 0 10px rgba(13, 9, 7, 0.94),
-        0 28px 60px rgba(0, 0, 0, 0.68),
-        inset 0 1px rgba(255, 231, 174, 0.13),
-        inset 0 -16px 34px rgba(0, 0, 0, 0.25);
+        0 0 0 5px color-mix(in srgb, var(--gold) 70%, transparent),
+        0 0 0 10px color-mix(in srgb, color-mix(in srgb, var(--ink) 60%, var(--screen-void)) 94%, transparent),
+        0 28px 60px color-mix(in srgb, var(--screen-void) 68%, transparent),
+        inset 0 1px color-mix(in srgb, var(--parchment) 13%, transparent),
+        inset 0 -16px 34px color-mix(in srgb, var(--screen-void) 25%, transparent);
     animation: settings-arrive 180ms ease-out both;
 }
 
@@ -44,7 +48,7 @@
     content: "";
     position: absolute;
     inset: 9px;
-    border: 1px solid rgba(214, 169, 91, 0.27);
+    border: 1px solid color-mix(in srgb, var(--gold-bright) 27%, transparent);
     pointer-events: none;
 }
 
@@ -58,7 +62,7 @@
     height: 30px;
     color: var(--gold-bright);
     border: 2px solid var(--ink);
-    background: #47301c;
+    background: var(--panel-hover);
     box-shadow: 0 0 0 2px var(--gold-dark);
     font-family: Georgia, serif;
     font-size: 12px;
@@ -95,11 +99,11 @@
 
 .settings-heading h1 {
     margin: 2px 0 0;
-    color: #fff1cf;
+    color: var(--parchment);
     font-family: Georgia, "Times New Roman", serif;
     font-size: 35px;
     line-height: 42px;
-    text-shadow: 0 3px 0 #120c08;
+    text-shadow: 0 3px 0 var(--ink);
 }
 
 .settings-heading p {
@@ -116,10 +120,16 @@
     height: 57px;
     flex: 0 0 auto;
     place-items: center;
-    color: #e9d7ae;
-    border: 1px solid #72502c;
-    background: linear-gradient(180deg, #3f2e20, #241a13);
-    box-shadow: 0 3px 0 #100b08, inset 0 1px rgba(255, 238, 197, 0.12);
+    color: var(--parchment);
+    border: 1px solid var(--gold-dark);
+    background: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--panel-raised) 75%, var(--panel-hover)),
+        color-mix(in srgb, var(--panel) 65%, var(--panel-deep))
+    );
+    box-shadow:
+        0 3px 0 color-mix(in srgb, var(--ink) 72%, var(--screen-void)),
+        inset 0 1px color-mix(in srgb, var(--parchment) 12%, transparent);
     cursor: pointer;
     transition: color 120ms ease, border-color 120ms ease, transform 100ms ease, filter 120ms ease;
 }
@@ -136,7 +146,7 @@
     right: 0;
     bottom: 3px;
     left: 0;
-    color: #927c5b;
+    color: color-mix(in srgb, var(--text-disabled) 65%, var(--gold-dark));
     font-family: "Courier New", monospace;
     font-size: 8px;
     font-weight: 700;
@@ -145,7 +155,7 @@
 }
 
 .settings-close:hover {
-    color: #fff4d5;
+    color: var(--parchment);
     border-color: var(--gold-bright);
     filter: brightness(1.12);
     transform: translateY(-2px);
@@ -180,7 +190,7 @@
     width: 8px;
     height: 8px;
     border: 1px solid var(--gold);
-    background: #211711;
+    background: color-mix(in srgb, var(--panel) 45%, var(--panel-deep));
     transform: rotate(45deg);
 }
 
@@ -196,11 +206,13 @@
     min-width: 0;
     margin: 0;
     padding: 20px;
-    border: 1px solid rgba(143, 101, 50, 0.75);
+    border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
     background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.025), transparent 45%),
-        rgba(17, 12, 9, 0.55);
-    box-shadow: inset 0 0 0 3px rgba(255, 224, 163, 0.018), 0 2px 0 #100b08;
+        linear-gradient(135deg, color-mix(in srgb, var(--parchment) 2.5%, transparent), transparent 45%),
+        color-mix(in srgb, var(--panel-deep) 55%, transparent);
+    box-shadow:
+        inset 0 0 0 3px color-mix(in srgb, var(--parchment) 1.8%, transparent),
+        0 2px 0 color-mix(in srgb, var(--ink) 72%, var(--screen-void));
 }
 
 .settings-section-heading {
@@ -216,7 +228,7 @@
 
 .settings-section-heading > div > span {
     display: block;
-    color: #b38b50;
+    color: color-mix(in srgb, var(--gold) 75%, var(--border));
     font-size: 8px;
     line-height: 11px;
     letter-spacing: 1.7px;
@@ -224,7 +236,7 @@
 
 .settings-section-heading h2 {
     margin: 1px 0 0;
-    color: #f5e4bd;
+    color: var(--parchment);
     font-family: Georgia, "Times New Roman", serif;
     font-size: 21px;
     line-height: 25px;
@@ -236,9 +248,9 @@
     width: 39px;
     height: 39px;
     flex: 0 0 auto;
-    border: 1px solid #70502c;
-    background: #241911;
-    box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--gold-dark);
+    background: color-mix(in srgb, var(--panel) 62%, var(--panel-deep));
+    box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--parchment) 2%, transparent);
 }
 
 .settings-section-emblem--display::before,
@@ -249,7 +261,7 @@
 
 .settings-section-emblem--display::before {
     inset: 9px 7px 11px;
-    border: 2px solid #d7ad62;
+    border: 2px solid color-mix(in srgb, var(--gold) 55%, var(--gold-bright));
 }
 
 .settings-section-emblem--display::after {
@@ -257,14 +269,14 @@
     bottom: 6px;
     left: 12px;
     height: 2px;
-    background: #d7ad62;
-    box-shadow: 0 -3px 0 -0.5px #241911;
+    background: color-mix(in srgb, var(--gold) 55%, var(--gold-bright));
+    box-shadow: 0 -3px 0 -0.5px color-mix(in srgb, var(--panel) 62%, var(--panel-deep));
 }
 
 .settings-field-label {
     display: block;
     margin: 17px 0 7px;
-    color: #d7bd86;
+    color: color-mix(in srgb, var(--parchment-muted) 57%, var(--gold-bright));
     letter-spacing: 1.3px;
 }
 
@@ -277,12 +289,14 @@
     width: 100%;
     height: 47px;
     padding: 0 45px 0 14px;
-    color: #f4e4bd;
-    border: 1px solid #72502a;
+    color: var(--parchment);
+    border: 1px solid var(--gold-dark);
     border-radius: 0;
     outline: none;
-    background: linear-gradient(180deg, #2a1f17, #17110d);
-    box-shadow: inset 0 3px 7px rgba(0, 0, 0, 0.35), 0 2px 0 #0e0907;
+    background: linear-gradient(180deg, var(--panel), var(--panel-deep));
+    box-shadow:
+        inset 0 3px 7px color-mix(in srgb, var(--screen-void) 35%, transparent),
+        0 2px 0 color-mix(in srgb, var(--ink) 64%, var(--screen-void));
     font-family: "Courier New", monospace;
     font-size: 13px;
     font-weight: 700;
@@ -306,7 +320,7 @@
 .settings-mode-option:has(input:focus-visible),
 .settings-close:focus-visible,
 .settings-action-button:focus-visible {
-    outline: 2px solid #fff1bd;
+    outline: 2px solid var(--parchment);
     outline-offset: 3px;
 }
 
@@ -316,14 +330,14 @@
 }
 
 .settings-select-wrap option {
-    color: #f1dfb5;
-    background: #211711;
+    color: var(--parchment);
+    background: color-mix(in srgb, var(--panel) 45%, var(--panel-deep));
 }
 
 .settings-field-hint {
     min-height: 28px;
     margin: 7px 1px 0;
-    color: #928267;
+    color: color-mix(in srgb, var(--text-disabled) 80%, var(--border-subtle));
     font-size: 10px;
     line-height: 14px;
 }
@@ -340,7 +354,7 @@
 .settings-mode-group legend {
     width: 100%;
     margin: 0 0 7px;
-    color: #d7bd86;
+    color: color-mix(in srgb, var(--parchment-muted) 57%, var(--gold-bright));
     letter-spacing: 1.3px;
 }
 
@@ -352,18 +366,26 @@
     align-items: center;
     gap: 8px;
     padding: 8px 9px;
-    color: #c3b18c;
-    border: 1px solid #5e4327;
-    background: rgba(38, 27, 19, 0.82);
+    color: var(--parchment-muted);
+    border: 1px solid color-mix(in srgb, var(--border) 78%, var(--panel-deep));
+    background: color-mix(
+        in srgb,
+        color-mix(in srgb, var(--panel) 72%, var(--panel-deep)) 82%,
+        transparent
+    );
     cursor: pointer;
     transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
 }
 
 .settings-mode-option:hover,
 .settings-mode-option:has(input:checked) {
-    color: #fff0c9;
-    border-color: #b7843e;
-    background: rgba(66, 47, 29, 0.92);
+    color: var(--parchment);
+    border-color: color-mix(in srgb, var(--gold) 80%, var(--gold-dark));
+    background: color-mix(
+        in srgb,
+        color-mix(in srgb, var(--panel-hover) 75%, var(--panel)) 92%,
+        transparent
+    );
 }
 
 .settings-mode-option input {
@@ -379,8 +401,8 @@
     display: block;
     width: 19px;
     height: 19px;
-    border: 1px solid #8c6634;
-    background: #17100c;
+    border: 1px solid color-mix(in srgb, var(--gold-dark) 72%, var(--gold));
+    background: var(--panel-deep);
     transform: rotate(45deg);
 }
 
@@ -390,7 +412,7 @@
     inset: 4px;
     opacity: 0;
     background: var(--gold-bright);
-    box-shadow: 0 0 8px rgba(240, 202, 115, 0.35);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--gold-bright) 35%, transparent);
     transition: opacity 100ms ease;
 }
 
@@ -412,7 +434,7 @@
 }
 
 .settings-mode-option small {
-    color: #8f8065;
+    color: color-mix(in srgb, var(--text-disabled) 78%, var(--border-subtle));
     font-size: 9px;
     line-height: 12px;
 }
@@ -430,7 +452,7 @@
     bottom: -48px;
     width: 150px;
     height: 150px;
-    border: 1px solid rgba(183, 137, 68, 0.13);
+    border: 1px solid color-mix(in srgb, var(--gold) 13%, transparent);
     transform: rotate(45deg);
 }
 
@@ -441,7 +463,7 @@
     left: 8px;
     width: 8px;
     height: 12px;
-    border: 2px solid #a48758;
+    border: 2px solid color-mix(in srgb, var(--parchment-muted) 55%, var(--gold-dark));
     border-right: 0;
 }
 
@@ -450,7 +472,7 @@
     position: absolute;
     top: 8px;
     left: 16px;
-    color: #a48758;
+    color: color-mix(in srgb, var(--parchment-muted) 55%, var(--gold-dark));
     font-family: Georgia, serif;
     font-size: 18px;
     line-height: 20px;
@@ -459,9 +481,9 @@
 .settings-coming-soon {
     margin-left: auto;
     padding: 4px 6px 3px;
-    color: #baa373;
-    border: 1px solid #665034;
-    background: rgba(20, 14, 10, 0.65);
+    color: var(--parchment-muted);
+    border: 1px solid var(--border);
+    background: color-mix(in srgb, var(--ink) 65%, transparent);
     font-family: "Courier New", monospace;
     font-size: 8px;
     letter-spacing: 1px;
@@ -476,8 +498,8 @@
     gap: 12px;
     margin-top: 28px;
     padding: 0 14px;
-    border: 1px solid #4c3a28;
-    background: rgba(14, 10, 8, 0.48);
+    border: 1px solid var(--border-subtle);
+    background: color-mix(in srgb, var(--ink) 48%, transparent);
 }
 
 .settings-speaker-icon {
@@ -485,7 +507,7 @@
     display: block;
     width: 28px;
     height: 28px;
-    border: 1px solid #5e4c34;
+    border: 1px solid color-mix(in srgb, var(--border) 58%, var(--border-subtle));
     transform: rotate(45deg);
 }
 
@@ -493,7 +515,7 @@
 .settings-speaker-icon::after {
     content: "";
     position: absolute;
-    background: #79694d;
+    background: color-mix(in srgb, var(--border) 70%, var(--text-disabled));
 }
 
 .settings-speaker-icon::before {
@@ -514,7 +536,7 @@
     position: relative;
     display: block;
     height: 4px;
-    background: #4a3b29;
+    background: var(--border-subtle);
 }
 
 .settings-audio-track i {
@@ -523,8 +545,8 @@
     left: 43%;
     width: 12px;
     height: 12px;
-    border: 2px solid #443725;
-    background: #79694d;
+    border: 2px solid var(--border-subtle);
+    background: color-mix(in srgb, var(--border) 70%, var(--text-disabled));
     transform: rotate(45deg);
 }
 
@@ -532,7 +554,7 @@
     position: relative;
     z-index: 1;
     margin: 17px 2px 0;
-    color: #9d8e72;
+    color: var(--text-disabled);
     font-size: 11px;
     line-height: 17px;
 }
@@ -546,7 +568,7 @@
 .settings-status {
     min-height: 18px;
     margin: 0 0 9px;
-    color: #a89775;
+    color: var(--text-disabled);
     font-family: "Courier New", monospace;
     font-size: 10px;
     font-weight: 700;
@@ -555,11 +577,11 @@
 }
 
 .settings-status.is-success {
-    color: #a9c775;
+    color: var(--green);
 }
 
 .settings-status.is-error {
-    color: #e18a73;
+    color: var(--red);
 }
 
 .settings-actions {
@@ -579,44 +601,54 @@
     gap: 10px;
     padding: 0 15px 0 10px;
     color: var(--parchment);
-    border: 1px solid color-mix(in srgb, var(--settings-button-accent) 65%, #342316);
-    background: linear-gradient(180deg, #443220, #281d14);
-    box-shadow: 0 3px 0 #100b08, inset 0 1px rgba(255, 235, 190, 0.12), inset 4px 0 var(--settings-button-accent);
+    border: 1px solid color-mix(in srgb, var(--settings-button-accent) 65%, var(--panel-deep));
+    background: linear-gradient(180deg, var(--panel-raised), var(--panel));
+    box-shadow:
+        0 3px 0 color-mix(in srgb, var(--ink) 72%, var(--screen-void)),
+        inset 0 1px color-mix(in srgb, var(--parchment) 12%, transparent),
+        inset 4px 0 var(--settings-button-accent);
     text-align: left;
     cursor: pointer;
     transition: border-color 120ms ease, color 120ms ease, filter 120ms ease, transform 100ms ease, box-shadow 100ms ease;
 }
 
 .settings-action-button--exit {
-    --settings-button-accent: #8f493d;
-    --settings-button-bright: #dc7f6d;
+    --settings-button-accent: color-mix(in srgb, var(--red) 65%, var(--panel-deep));
+    --settings-button-bright: var(--red);
 }
 
 .settings-action-button--apply {
-    --settings-button-accent: #789442;
-    --settings-button-bright: #c3da78;
+    --settings-button-accent: color-mix(in srgb, var(--green) 65%, var(--panel-deep));
+    --settings-button-bright: var(--green);
 }
 
 .settings-action-button--apply.has-pending-settings {
     border-color: var(--settings-button-bright);
     box-shadow:
-        0 3px 0 #100b08,
-        0 0 14px rgba(172, 201, 96, 0.12),
-        inset 0 1px rgba(255, 235, 190, 0.12),
+        0 3px 0 color-mix(in srgb, var(--ink) 72%, var(--screen-void)),
+        0 0 14px color-mix(in srgb, var(--green) 12%, transparent),
+        inset 0 1px color-mix(in srgb, var(--parchment) 12%, transparent),
         inset 4px 0 var(--settings-button-bright);
 }
 
 .settings-action-button:hover:not(:disabled) {
-    color: #fff5dc;
+    color: var(--parchment);
     border-color: var(--settings-button-bright);
     filter: brightness(1.12);
     transform: translateY(-2px);
-    box-shadow: 0 5px 0 #100b08, 0 8px 15px rgba(0, 0, 0, 0.2), inset 0 1px rgba(255, 235, 190, 0.16), inset 4px 0 var(--settings-button-bright);
+    box-shadow:
+        0 5px 0 color-mix(in srgb, var(--ink) 72%, var(--screen-void)),
+        0 8px 15px color-mix(in srgb, var(--screen-void) 20%, transparent),
+        inset 0 1px color-mix(in srgb, var(--parchment) 16%, transparent),
+        inset 4px 0 var(--settings-button-bright);
 }
 
 .settings-action-button:active:not(:disabled) {
     transform: translateY(1px);
-    box-shadow: 0 1px 0 #100b08, inset 0 2px 5px rgba(0, 0, 0, 0.3), inset 4px 0 var(--settings-button-accent);
+    box-shadow:
+        0 1px 0 color-mix(in srgb, var(--ink) 72%, var(--screen-void)),
+        inset 0 2px 5px color-mix(in srgb, var(--screen-void) 30%, transparent),
+        inset 4px 0 var(--settings-button-accent);
 }
 
 .settings-action-button:disabled {
@@ -629,8 +661,8 @@
     width: 34px;
     height: 34px;
     color: var(--settings-button-bright);
-    border: 1px solid color-mix(in srgb, var(--settings-button-accent) 60%, #2b1c12);
-    background: rgba(12, 9, 7, 0.43);
+    border: 1px solid color-mix(in srgb, var(--settings-button-accent) 60%, var(--panel-deep));
+    background: color-mix(in srgb, var(--ink) 43%, transparent);
     font-family: Georgia, serif;
     font-size: 20px;
     line-height: 1;
@@ -654,7 +686,7 @@
 
 .settings-action-button small {
     overflow: hidden;
-    color: #a89570;
+    color: var(--parchment-muted);
     font-size: 10px;
     line-height: 14px;
     text-overflow: ellipsis;

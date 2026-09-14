@@ -1,4 +1,5 @@
 import ast
+import re
 import unittest
 from html.parser import HTMLParser
 from pathlib import Path
@@ -48,6 +49,7 @@ class FrontendStructureTests(unittest.TestCase):
         html = index_path.read_text(encoding="utf-8")
         shell = inspect(index_path)
 
+        self.assertIn("ui/web/shared/theme.css", shell.references)
         self.assertIn("ui/web/shared/shared.css", shell.references)
         self.assertIn("ui/web/menu/menu.css", shell.references)
         self.assertIn("ui/web/lobby/lobby.css", shell.references)
@@ -56,6 +58,146 @@ class FrontendStructureTests(unittest.TestCase):
         self.assertIn('id="viewport"', html)
         self.assertNotIn('id="menu-screen"', html)
         self.assertNotIn('id="game-screen"', html)
+        self.assertLess(
+            shell.references.index("ui/web/shared/theme.css"),
+            shell.references.index("ui/web/shared/shared.css"),
+        )
+
+    def test_theme_is_the_single_source_for_frontend_colors(self):
+        theme_path = WEB_DIR / "shared" / "theme.css"
+        theme_css = theme_path.read_text(
+            encoding="utf-8",
+        )
+        shared_css = (WEB_DIR / "shared" / "shared.css").read_text(
+            encoding="utf-8",
+        )
+        token_pattern = re.compile(r"(?m)^\s*(--[a-z][a-z0-9-]*)\s*:")
+        theme_tokens = set(token_pattern.findall(theme_css))
+        shared_tokens = set(token_pattern.findall(shared_css))
+
+        self.assertTrue(
+            {
+                "--ink",
+                "--panel",
+                "--panel-deep",
+                "--parchment",
+                "--gold",
+                "--green",
+                "--red",
+            }.issubset(theme_tokens),
+        )
+        self.assertTrue(
+            theme_tokens.isdisjoint(shared_tokens),
+            "shared.css redefine tokens cromaticos do theme.css: "
+            f"{sorted(theme_tokens & shared_tokens)}",
+        )
+
+        fixed_color_pattern = re.compile(
+            r"(?i)#[0-9a-f]{3,8}\b|\brgba?\s*\(|\bhsla?\s*\(",
+        )
+        for stylesheet in WEB_DIR.rglob("*.css"):
+            if stylesheet == theme_path:
+                continue
+            source = stylesheet.read_text(encoding="utf-8")
+            fixed_colors = fixed_color_pattern.findall(source)
+            with self.subTest(stylesheet=stylesheet.relative_to(WEB_DIR)):
+                self.assertEqual(
+                    fixed_colors,
+                    [],
+                    "Cores fixas devem existir apenas em shared/theme.css: "
+                    f"{fixed_colors}",
+                )
+
+    def test_canvas_renderers_consume_theme_tokens_instead_of_fixed_colors(self):
+        theme_css = (WEB_DIR / "shared" / "theme.css").read_text(
+            encoding="utf-8",
+        )
+        theme_tokens = set(
+            re.findall(r"(?m)^\s*--([a-z][a-z0-9-]*)\s*:", theme_css),
+        )
+        sources = {
+            "game.js": (WEB_DIR / "game" / "game.js").read_text(
+                encoding="utf-8",
+            ),
+            "lobby.js": (WEB_DIR / "lobby" / "lobby.js").read_text(
+                encoding="utf-8",
+            ),
+        }
+
+        for filename, source in sources.items():
+            with self.subTest(renderer=filename):
+                theme_import = re.search(
+                    r'import\s*\{(?P<bindings>[^}]*)\}\s*from\s*'
+                    r'["\']\.\./shared/theme\.js["\']\s*;',
+                    source,
+                )
+                self.assertIsNotNone(theme_import)
+                self.assertRegex(theme_import.group("bindings"), r"\breadThemeColors\b")
+                self.assertIn("const themeColor = readThemeColors();", source)
+
+                consumed_tokens = set(
+                    re.findall(
+                        r'themeColor\(\s*["\']([a-z][a-z0-9-]*)["\']\s*\)',
+                        source,
+                    ),
+                )
+                self.assertTrue(consumed_tokens)
+                self.assertTrue(
+                    consumed_tokens.issubset(theme_tokens),
+                    f"Tokens usados sem declaracao em theme.css: "
+                    f"{sorted(consumed_tokens - theme_tokens)}",
+                )
+
+                fixed_colors = re.findall(
+                    r"(?i)#[0-9a-f]{3,8}\b|\brgba?\s*\(",
+                    source,
+                )
+                self.assertEqual(
+                    fixed_colors,
+                    [],
+                    f"{filename} ainda contem cores fixas: {fixed_colors}",
+                )
+
+        game_import = re.search(
+            r'import\s*\{(?P<bindings>[^}]*)\}\s*from\s*'
+            r'["\']\.\./shared/theme\.js["\']\s*;',
+            sources["game.js"],
+        )
+        self.assertRegex(game_import.group("bindings"), r"\bwithAlpha\b")
+        self.assertIn("withAlpha(themeColor(", sources["game.js"])
+
+    def test_game_panel_shells_use_the_shared_warm_theme(self):
+        game_css = (WEB_DIR / "game" / "game.css").read_text(encoding="utf-8")
+        shell_selectors = (
+            ".hud-panel",
+            ".troop-selection",
+            ".build-panel-toggle",
+            ".build-panel",
+            ".command-panel",
+            ".territory-legend",
+            ".map-help-toggle",
+        )
+
+        for selector in shell_selectors:
+            with self.subTest(selector=selector):
+                match = re.search(
+                    rf"(?m)^\s*{re.escape(selector)}\s*\{{(?P<body>[^}}]*)\}}",
+                    game_css,
+                )
+                self.assertIsNotNone(match, f"Regra CSS ausente: {selector}")
+                declarations = match.group("body")
+                self.assertRegex(declarations, r"var\(--panel(?:-[a-z0-9-]+)?\)")
+                self.assertRegex(declarations, r"var\(--border(?:-[a-z0-9-]+)?\)")
+
+        for legacy_color in (
+            "#56666c",
+            "rgba(23, 31, 35",
+            "#50574a",
+            "#282b27",
+            "#495044",
+        ):
+            with self.subTest(legacy_color=legacy_color):
+                self.assertNotIn(legacy_color, game_css)
 
     def test_viewport_and_canvas_expand_responsively_on_widescreen(self):
         runtime_js = (WEB_DIR / "shared" / "runtime.js").read_text(
